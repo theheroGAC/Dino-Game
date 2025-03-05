@@ -51,6 +51,12 @@ local timeLeft = 60          -- Tempo rimanente per la modalità a tempo (in sec
 -- Schermata di pausa
 local isPaused = false       -- Indica se il gioco è in pausa
 
+-- Impostazioni
+local settings = {
+    musicEnabled = true,     -- Abilita/disabilita la musica
+    soundEnabled = true      -- Abilita/disabilita i suoni
+}
+
 -- Carica l'highscore all'avvio
 local saveData = io.open("ux0:/data/dino_game/highscore.txt", "r")
 if saveData then
@@ -68,11 +74,15 @@ local background = {
 
 -- Variabili per il menu
 local inMenu = true          -- Indica se siamo nel menu
-local menuSelection = 1      -- Indica l'opzione selezionata (1 = Gioca, 2 = Istruzioni, 3 = Esci)
+local menuSelection = 1      -- Indica l'opzione selezionata (1 = Gioca, 2 = Istruzioni, 3 = Impostazioni, 4 = Esci)
+local menuBackground = image.load("assets/images/menu_background.png") -- Sfondo del menu
+local titleY = 50            -- Posizione Y del titolo (per l'animazione)
+local titleDirection = 1     -- Direzione dell'animazione del titolo
 
 -- Carica i suoni
 local jumpSound = sound.load("assets/sounds/jump.wav")
 local gameOverSound = sound.load("assets/sounds/gameover.wav")
+local backgroundMusic = sound.load("assets/sounds/background_music.mp3")
 
 -- Carica le immagini dei cactus
 local cactusImages = {
@@ -136,6 +146,9 @@ end
 -- Funzione di caricamento
 function load()
     screen.clear(0xFFFFFFFF)
+    if settings.musicEnabled and backgroundMusic then
+        sound.play(backgroundMusic, true) -- Riproduci la musica in loop
+    end
 end
 
 -- Funzione di aggiornamento
@@ -190,7 +203,7 @@ function update()
                         file:close()
                     end
                 end
-                if gameOverSound then
+                if gameOverSound and settings.soundEnabled then
                     sound.play(gameOverSound)
                 end
             end
@@ -252,7 +265,7 @@ function handleTouchInput()
 
     if touch.front.count > 0 and dino.y == 200 then
         dino.speed = -10
-        if jumpSound then
+        if jumpSound and settings.soundEnabled then
             sound.play(jumpSound)
         end
     end
@@ -264,7 +277,7 @@ function handleInput()
 
     if buttons.cross and dino.y == 200 then
         dino.speed = -10
-        if jumpSound then
+        if jumpSound and settings.soundEnabled then
             sound.play(jumpSound)
         end
     end
@@ -311,8 +324,16 @@ end
 -- Funzione per disegnare il menu principale
 function drawMenu()
     screen.clear(0xFFFFFFFF)
-    screen.print(200, 50, "Dino Game", 1.0, 0xFF000000)
+    image.blit(menuBackground, 0, 0) -- Disegna lo sfondo del menu
 
+    -- Animazione del titolo
+    titleY = titleY + titleDirection
+    if titleY > 70 or titleY < 50 then
+        titleDirection = -titleDirection
+    end
+    screen.print(200, titleY, "Dino Game", 1.0, 0xFF000000)
+
+    -- Opzioni del menu
     if menuSelection == 1 then
         screen.print(200, 150, "> Gioca (Modalità Infinita)", 0.7, 0xFFFF0000)
     else
@@ -332,9 +353,15 @@ function drawMenu()
     end
 
     if menuSelection == 4 then
-        screen.print(200, 300, "> Esci", 0.7, 0xFFFF0000)
+        screen.print(200, 300, "> Impostazioni", 0.7, 0xFFFF0000)
     else
-        screen.print(200, 300, "Esci", 0.7, 0xFF000000)
+        screen.print(200, 300, "Impostazioni", 0.7, 0xFF000000)
+    end
+
+    if menuSelection == 5 then
+        screen.print(200, 350, "> Esci", 0.7, 0xFFFF0000)
+    else
+        screen.print(200, 350, "Esci", 0.7, 0xFF000000)
     end
 
     screen.flip()
@@ -346,13 +373,13 @@ function handleMenuInput()
 
     if buttons.down then
         menuSelection = menuSelection + 1
-        if menuSelection > 4 then
+        if menuSelection > 5 then
             menuSelection = 1
         end
     elseif buttons.up then
         menuSelection = menuSelection - 1
         if menuSelection < 1 then
-            menuSelection = 4
+            menuSelection = 5
         end
     end
 
@@ -367,6 +394,8 @@ function handleMenuInput()
         elseif menuSelection == 3 then
             showInstructions()
         elseif menuSelection == 4 then
+            showSettings()
+        elseif menuSelection == 5 then
             os.exit()
         end
     end
@@ -384,6 +413,58 @@ function showInstructions()
 
         buttons.read()
         if buttons.circle then
+            break
+        end
+
+        os.delay(16)
+    end
+end
+
+-- Funzione per mostrare le impostazioni
+function showSettings()
+    local settingsSelection = 1
+    while true do
+        screen.clear(0xFFFFFFFF)
+        screen.print(100, 50, "Impostazioni:", 0.7, 0xFF000000)
+
+        if settingsSelection == 1 then
+            screen.print(100, 100, "> Musica: " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, 0xFFFF0000)
+        else
+            screen.print(100, 100, "Musica: " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, 0xFF000000)
+        end
+
+        if settingsSelection == 2 then
+            screen.print(100, 150, "> Suoni: " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, 0xFFFF0000)
+        else
+            screen.print(100, 150, "Suoni: " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, 0xFF000000)
+        end
+
+        screen.print(100, 200, "Premi O per tornare al menu", 0.7, 0xFF000000)
+        screen.flip()
+
+        buttons.read()
+        if buttons.down then
+            settingsSelection = settingsSelection + 1
+            if settingsSelection > 2 then
+                settingsSelection = 1
+            end
+        elseif buttons.up then
+            settingsSelection = settingsSelection - 1
+            if settingsSelection < 1 then
+                settingsSelection = 2
+            end
+        elseif buttons.cross then
+            if settingsSelection == 1 then
+                settings.musicEnabled = not settings.musicEnabled
+                if settings.musicEnabled then
+                    sound.play(backgroundMusic, true)
+                else
+                    sound.stop(backgroundMusic)
+                end
+            elseif settingsSelection == 2 then
+                settings.soundEnabled = not settings.soundEnabled
+            end
+        elseif buttons.circle then
             break
         end
 

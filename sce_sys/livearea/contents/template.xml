@@ -24,11 +24,11 @@
 		<liveitem>
 			<text origin="background" line-align="center" margin-bottom="1">
 				<str size="25" bold="on" shadow="on">　</str>
-				<str size="40" bold="on" shadow="on">Sample VPK for ONElua Vita</str>
+				<str size="40" bold="on" shadow="on">Dino Game alpha</str>
 				<str size="25" bold="on" shadow="on">　
 				</str>
 				<str size="21" bold="on" shadow="on">
-					®2016 Team ONElua - ONElua.x10.mx
+					®2025 TheheroGAC
 				</str>
 			</text>
 			<lang>es</lang>
@@ -36,11 +36,11 @@
 		<liveitem>
 			<text origin="background" line-align="center" margin-bottom="1">
 				<str size="30" bold="on" shadow="on">　</str>
-				<str size="40" bold="on" shadow="on">Sample VPK for ONElua Vita</str>
+				<str size="40" bold="on" shadow="on">Dino Game alpha</str>
 				<str size="30" bold="on" shadow="on">　
 				</str>
 				<str size="21" bold="on" shadow="on">
-					®2016 Team ONElua - ONElua.x10.mx
+					®2025 TheheroGAC
 				</str>
 			</text>
 			<exclude-lang>es</exclude-lang>
