@@ -44,6 +44,13 @@ local score = 0              -- Punteggio del gioco
 local gameOver = false       -- Stato del gioco (true se il gioco è finito)
 local highScore = 0          -- Highscore
 
+-- Modalità di gioco
+local gameMode = "infinite"  -- Modalità predefinita: infinita
+local timeLeft = 60          -- Tempo rimanente per la modalità a tempo (in secondi)
+
+-- Schermata di pausa
+local isPaused = false       -- Indica se il gioco è in pausa
+
 -- Carica l'highscore all'avvio
 local saveData = io.open("ux0:/data/dino_game/highscore.txt", "r")
 if saveData then
@@ -133,7 +140,15 @@ end
 
 -- Funzione di aggiornamento
 function update()
-    if not gameOver then
+    if not gameOver and not isPaused then
+        -- Aggiorna il timer per la modalità a tempo
+        if gameMode == "timed" then
+            timeLeft = timeLeft - 1 / 60 -- Aggiorna il timer
+            if timeLeft <= 0 then
+                gameOver = true
+            end
+        end
+
         -- Applica la gravità al dinosauro
         dino.speed = dino.speed + gravity
         dino.y = dino.y + dino.speed
@@ -208,12 +223,27 @@ function draw()
     screen.print(10, 10, "Score: " .. score, 0.7, 0xFF000000)
     screen.print(10, 30, "High Score: " .. highScore, 0.7, 0xFF000000)
 
+    -- Disegna il timer per la modalità a tempo
+    if gameMode == "timed" then
+        screen.print(10, 50, "Time: " .. math.floor(timeLeft), 0.7, 0xFF000000)
+    end
+
     if gameOver then
         screen.print(300, 200, "Game Over", 0.7, 0xFFFF0000)
         screen.print(280, 250, "Press X to Restart", 0.7, 0xFFFF0000)
+    elseif isPaused then
+        drawPauseMenu()
     end
 
     screen.flip()
+end
+
+-- Funzione per disegnare il menu di pausa
+function drawPauseMenu()
+    screen.print(300, 100, "Pausa", 0.7, 0xFFFF0000)
+    screen.print(280, 150, "Premi Start per riprendere", 0.7, 0xFFFF0000)
+    screen.print(280, 200, "Premi X per riavviare", 0.7, 0xFFFF0000)
+    screen.print(280, 250, "Premi O per tornare al menu", 0.7, 0xFFFF0000)
 end
 
 -- Funzione per gestire il touch
@@ -247,30 +277,64 @@ function handleInput()
         dino.speed = 0
         cacti = {}
         score = 0
+        if gameMode == "timed" then
+            timeLeft = 60 -- Resetta il timer
+        end
+    end
+
+    -- Gestione della pausa
+    if buttons.start then
+        isPaused = not isPaused
+    end
+
+    -- Gestione del menu di pausa
+    if isPaused then
+        if buttons.cross then
+            -- Riavvia il gioco
+            gameOver = false
+            dino.y = 200
+            dino.speed = 0
+            cacti = {}
+            score = 0
+            if gameMode == "timed" then
+                timeLeft = 60 -- Resetta il timer
+            end
+            isPaused = false
+        elseif buttons.circle then
+            -- Torna al menu principale
+            inMenu = true
+            isPaused = false
+        end
     end
 end
 
--- Funzione per disegnare il menu
+-- Funzione per disegnare il menu principale
 function drawMenu()
     screen.clear(0xFFFFFFFF)
     screen.print(200, 50, "Dino Game", 1.0, 0xFF000000)
 
     if menuSelection == 1 then
-        screen.print(200, 150, "> Gioca", 0.7, 0xFFFF0000)
+        screen.print(200, 150, "> Gioca (Modalità Infinita)", 0.7, 0xFFFF0000)
     else
-        screen.print(200, 150, "Gioca", 0.7, 0xFF000000)
+        screen.print(200, 150, "Gioca (Modalità Infinita)", 0.7, 0xFF000000)
     end
 
     if menuSelection == 2 then
-        screen.print(200, 200, "> Istruzioni", 0.7, 0xFFFF0000)
+        screen.print(200, 200, "> Gioca (Modalità a Tempo)", 0.7, 0xFFFF0000)
     else
-        screen.print(200, 200, "Istruzioni", 0.7, 0xFF000000)
+        screen.print(200, 200, "Gioca (Modalità a Tempo)", 0.7, 0xFF000000)
     end
 
     if menuSelection == 3 then
-        screen.print(200, 250, "> Esci", 0.7, 0xFFFF0000)
+        screen.print(200, 250, "> Istruzioni", 0.7, 0xFFFF0000)
     else
-        screen.print(200, 250, "Esci", 0.7, 0xFF000000)
+        screen.print(200, 250, "Istruzioni", 0.7, 0xFF000000)
+    end
+
+    if menuSelection == 4 then
+        screen.print(200, 300, "> Esci", 0.7, 0xFFFF0000)
+    else
+        screen.print(200, 300, "Esci", 0.7, 0xFF000000)
     end
 
     screen.flip()
@@ -282,22 +346,27 @@ function handleMenuInput()
 
     if buttons.down then
         menuSelection = menuSelection + 1
-        if menuSelection > 3 then
+        if menuSelection > 4 then
             menuSelection = 1
         end
     elseif buttons.up then
         menuSelection = menuSelection - 1
         if menuSelection < 1 then
-            menuSelection = 3
+            menuSelection = 4
         end
     end
 
     if buttons.cross then
         if menuSelection == 1 then
             inMenu = false
+            gameMode = "infinite"
         elseif menuSelection == 2 then
-            showInstructions()
+            inMenu = false
+            gameMode = "timed"
+            timeLeft = 60 -- Resetta il timer
         elseif menuSelection == 3 then
+            showInstructions()
+        elseif menuSelection == 4 then
             os.exit()
         end
     end
