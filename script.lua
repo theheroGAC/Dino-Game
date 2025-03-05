@@ -11,6 +11,98 @@ end
 -- Creazione della cartella all'avvio
 createDirectoryIfNotExists("ux0:/data/dino_game")
 
+-- Traduzioni multilingue
+local translations = {
+    it = {
+        play = "Gioca",
+        instructions = "Istruzioni",
+        settings = "Impostazioni",
+        exit = "Esci",
+        score = "Punteggio",
+        highScore = "High Score",
+        time = "Tempo",
+        gameOver = "Game Over",
+        restart = "Premi X per Ricominciare",
+        pause = "Pausa",
+        resume = "Riprendi",
+        backToMenu = "Torna al Menu",
+        music = "Musica",
+        sounds = "Suoni",
+        language = "Lingua",
+        infinite = "Infinito",
+        timed = "A Tempo",
+    },
+    en = {
+        play = "Play",
+        instructions = "Instructions",
+        settings = "Settings",
+        exit = "Exit",
+        score = "Score",
+        highScore = "High Score",
+        time = "Time",
+        gameOver = "Game Over",
+        restart = "Press X to Restart",
+        pause = "Pause",
+        resume = "Resume",
+        backToMenu = "Back to Menu",
+        music = "Music",
+        sounds = "Sounds",
+        language = "Language",
+        infinite = "Infinite",
+        timed = "Timed",
+    },
+    es = {
+        play = "Jugar",
+        instructions = "Instrucciones",
+        settings = "Configuración",
+        exit = "Salir",
+        score = "Puntuación",
+        highScore = "Máxima Puntuación",
+        time = "Tiempo",
+        gameOver = "Fin del Juego",
+        restart = "Presiona X para Reiniciar",
+        pause = "Pausa",
+        resume = "Reanudar",
+        backToMenu = "Volver al Menú",
+        music = "Música",
+        sounds = "Sonidos",
+        language = "Idioma",
+        infinite = "Infinito",
+        timed = "A Tiempo",
+    }
+}
+
+-- Lingua corrente (predefinita: italiano)
+local currentLanguage = "it"
+
+-- Funzione di traduzione
+function translate(key)
+    return translations[currentLanguage][key] or "[" .. key .. "]"
+end
+
+-- Carica la configurazione della lingua
+local configFile = "ux0:/data/dino_game/config.txt"
+
+local function loadConfig()
+    local file = io.open(configFile, "r")
+    if file then
+        currentLanguage = file:read("*a") or "it"
+        file:close()
+    end
+end
+
+-- Salva la configurazione della lingua
+local function saveConfig()
+    local file = io.open(configFile, "w")
+    if file then
+        file:write(currentLanguage)
+        file:close()
+    end
+end
+
+-- Carica la configurazione all'avvio
+loadConfig()
+
 -- Variabili del gioco
 local dino = {
     x = 50,                  -- Posizione X del dinosauro
@@ -74,7 +166,7 @@ local background = {
 
 -- Variabili per il menu
 local inMenu = true          -- Indica se siamo nel menu
-local menuSelection = 1      -- Indica l'opzione selezionata (1 = Gioca, 2 = Istruzioni, 3 = Impostazioni, 4 = Esci)
+local menuSelection = 1      -- Indica l'opzione selezionata (1 = Gioca Infinito, 2 = Gioca a Tempo, 3 = Istruzioni, 4 = Impostazioni, 5 = Esci)
 local menuBackground = image.load("assets/images/menu_background.png") -- Sfondo del menu
 local titleY = 50            -- Posizione Y del titolo (per l'animazione)
 local titleDirection = 1     -- Direzione dell'animazione del titolo
@@ -143,10 +235,22 @@ function updateDinoAnimation()
     end
 end
 
+-- Funzione per resettare il gioco
+function resetGame()
+    dino.y = 200
+    dino.speed = 0
+    cacti = {}
+    score = 0
+    gameOver = false
+    if gameMode == "timed" then
+        timeLeft = 60 -- Resetta il timer per la modalità a tempo
+    end
+end
+
 -- Funzione di caricamento
 function load()
     screen.clear(0xFFFFFFFF)
-    if settings.musicEnabled and backgroundMusic then
+    if settings.musicEnabled then
         sound.play(backgroundMusic, true) -- Riproduci la musica in loop
     end
 end
@@ -204,7 +308,7 @@ function update()
                     end
                 end
                 if gameOverSound and settings.soundEnabled then
-                    sound.play(gameOverSound)
+                    sound.play(gameOverSound, false, 1) -- Priorità bassa
                 end
             end
         end
@@ -233,17 +337,17 @@ function draw()
     end
 
     -- Disegna il punteggio e l'highscore
-    screen.print(10, 10, "Score: " .. score, 0.7, 0xFF000000)
-    screen.print(10, 30, "High Score: " .. highScore, 0.7, 0xFF000000)
+    screen.print(10, 10, translate("score") .. ": " .. score, 0.7, 0xFF000000)
+    screen.print(10, 30, translate("highScore") .. ": " .. highScore, 0.7, 0xFF000000)
 
     -- Disegna il timer per la modalità a tempo
     if gameMode == "timed" then
-        screen.print(10, 50, "Time: " .. math.floor(timeLeft), 0.7, 0xFF000000)
+        screen.print(10, 50, translate("time") .. ": " .. math.floor(timeLeft), 0.7, 0xFF000000)
     end
 
     if gameOver then
-        screen.print(300, 200, "Game Over", 0.7, 0xFFFF0000)
-        screen.print(280, 250, "Press X to Restart", 0.7, 0xFFFF0000)
+        screen.print(300, 200, translate("gameOver"), 0.7, 0xFFFF0000)
+        screen.print(280, 250, translate("restart"), 0.7, 0xFFFF0000)
     elseif isPaused then
         drawPauseMenu()
     end
@@ -253,22 +357,10 @@ end
 
 -- Funzione per disegnare il menu di pausa
 function drawPauseMenu()
-    screen.print(300, 100, "Pausa", 0.7, 0xFFFF0000)
-    screen.print(280, 150, "Premi Start per riprendere", 0.7, 0xFFFF0000)
-    screen.print(280, 200, "Premi X per riavviare", 0.7, 0xFFFF0000)
-    screen.print(280, 250, "Premi O per tornare al menu", 0.7, 0xFFFF0000)
-end
-
--- Funzione per gestire il touch
-function handleTouchInput()
-    touch.read()
-
-    if touch.front.count > 0 and dino.y == 200 then
-        dino.speed = -10
-        if jumpSound and settings.soundEnabled then
-            sound.play(jumpSound)
-        end
-    end
+    screen.print(300, 100, translate("pause"), 0.7, 0xFFFF0000)
+    screen.print(280, 150, translate("resume"), 0.7, 0xFFFF0000)
+    screen.print(280, 200, translate("restart"), 0.7, 0xFFFF0000)
+    screen.print(280, 250, translate("backToMenu"), 0.7, 0xFFFF0000)
 end
 
 -- Gestione degli input
@@ -278,40 +370,32 @@ function handleInput()
     if buttons.cross and dino.y == 200 then
         dino.speed = -10
         if jumpSound and settings.soundEnabled then
-            sound.play(jumpSound)
+            sound.play(jumpSound, false, 1) -- Priorità bassa
         end
     end
 
-    handleTouchInput()
-
     if gameOver and buttons.cross then
         gameOver = false
-        dino.y = 200
-        dino.speed = 0
-        cacti = {}
-        score = 0
-        if gameMode == "timed" then
-            timeLeft = 60 -- Resetta il timer
-        end
+        resetGame() -- Resetta il gioco
     end
 
     -- Gestione della pausa
     if buttons.start then
         isPaused = not isPaused
+        if isPaused then
+            sound.stop(backgroundMusic) -- Ferma la musica in pausa
+        else
+            if settings.musicEnabled then
+                sound.play(backgroundMusic, true) -- Riprendi la musica
+            end
+        end
     end
 
     -- Gestione del menu di pausa
     if isPaused then
         if buttons.cross then
             -- Riavvia il gioco
-            gameOver = false
-            dino.y = 200
-            dino.speed = 0
-            cacti = {}
-            score = 0
-            if gameMode == "timed" then
-                timeLeft = 60 -- Resetta il timer
-            end
+            resetGame()
             isPaused = false
         elseif buttons.circle then
             -- Torna al menu principale
@@ -335,33 +419,33 @@ function drawMenu()
 
     -- Opzioni del menu
     if menuSelection == 1 then
-        screen.print(200, 150, "> Gioca (Modalità Infinita)", 0.7, 0xFFFF0000)
+        screen.print(200, 150, "> " .. translate("play") .. " (" .. translate("infinite") .. ")", 0.7, 0xFFFF0000)
     else
-        screen.print(200, 150, "Gioca (Modalità Infinita)", 0.7, 0xFF000000)
+        screen.print(200, 150, translate("play") .. " (" .. translate("infinite") .. ")", 0.7, 0xFF000000)
     end
 
     if menuSelection == 2 then
-        screen.print(200, 200, "> Gioca (Modalità a Tempo)", 0.7, 0xFFFF0000)
+        screen.print(200, 200, "> " .. translate("play") .. " (" .. translate("timed") .. ")", 0.7, 0xFFFF0000)
     else
-        screen.print(200, 200, "Gioca (Modalità a Tempo)", 0.7, 0xFF000000)
+        screen.print(200, 200, translate("play") .. " (" .. translate("timed") .. ")", 0.7, 0xFF000000)
     end
 
     if menuSelection == 3 then
-        screen.print(200, 250, "> Istruzioni", 0.7, 0xFFFF0000)
+        screen.print(200, 250, "> " .. translate("instructions"), 0.7, 0xFFFF0000)
     else
-        screen.print(200, 250, "Istruzioni", 0.7, 0xFF000000)
+        screen.print(200, 250, translate("instructions"), 0.7, 0xFF000000)
     end
 
     if menuSelection == 4 then
-        screen.print(200, 300, "> Impostazioni", 0.7, 0xFFFF0000)
+        screen.print(200, 300, "> " .. translate("settings"), 0.7, 0xFFFF0000)
     else
-        screen.print(200, 300, "Impostazioni", 0.7, 0xFF000000)
+        screen.print(200, 300, translate("settings"), 0.7, 0xFF000000)
     end
 
     if menuSelection == 5 then
-        screen.print(200, 350, "> Esci", 0.7, 0xFFFF0000)
+        screen.print(200, 350, "> " .. translate("exit"), 0.7, 0xFFFF0000)
     else
-        screen.print(200, 350, "Esci", 0.7, 0xFF000000)
+        screen.print(200, 350, translate("exit"), 0.7, 0xFF000000)
     end
 
     screen.flip()
@@ -387,10 +471,12 @@ function handleMenuInput()
         if menuSelection == 1 then
             inMenu = false
             gameMode = "infinite"
+            resetGame() -- Resetta il gioco per la modalità infinita
         elseif menuSelection == 2 then
             inMenu = false
             gameMode = "timed"
-            timeLeft = 60 -- Resetta il timer
+            resetGame() -- Resetta il gioco per la modalità a tempo
+            timeLeft = 60 -- Imposta il timer a 60 secondi
         elseif menuSelection == 3 then
             showInstructions()
         elseif menuSelection == 4 then
@@ -405,10 +491,10 @@ end
 function showInstructions()
     while true do
         screen.clear(0xFFFFFFFF)
-        screen.print(100, 50, "Istruzioni:", 0.7, 0xFF000000)
-        screen.print(100, 100, "Premi X per saltare", 0.7, 0xFF000000)
-        screen.print(100, 150, "Evita i cactus!", 0.7, 0xFF000000)
-        screen.print(100, 200, "Premi O per tornare al menu", 0.7, 0xFF000000)
+        screen.print(100, 50, translate("instructions") .. ":", 0.7, 0xFF000000)
+        screen.print(100, 100, translate("jumpHint"), 0.7, 0xFF000000)
+        screen.print(100, 150, translate("avoidCacti"), 0.7, 0xFF000000)
+        screen.print(100, 200, translate("backToMenuHint"), 0.7, 0xFF000000)
         screen.flip()
 
         buttons.read()
@@ -425,33 +511,39 @@ function showSettings()
     local settingsSelection = 1
     while true do
         screen.clear(0xFFFFFFFF)
-        screen.print(100, 50, "Impostazioni:", 0.7, 0xFF000000)
+        screen.print(100, 50, translate("settings") .. ":", 0.7, 0xFF000000)
 
         if settingsSelection == 1 then
-            screen.print(100, 100, "> Musica: " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, 0xFFFF0000)
+            screen.print(100, 100, "> " .. translate("music") .. ": " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, 0xFFFF0000)
         else
-            screen.print(100, 100, "Musica: " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, 0xFF000000)
+            screen.print(100, 100, translate("music") .. ": " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, 0xFF000000)
         end
 
         if settingsSelection == 2 then
-            screen.print(100, 150, "> Suoni: " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, 0xFFFF0000)
+            screen.print(100, 150, "> " .. translate("sounds") .. ": " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, 0xFFFF0000)
         else
-            screen.print(100, 150, "Suoni: " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, 0xFF000000)
+            screen.print(100, 150, translate("sounds") .. ": " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, 0xFF000000)
         end
 
-        screen.print(100, 200, "Premi O per tornare al menu", 0.7, 0xFF000000)
+        if settingsSelection == 3 then
+            screen.print(100, 200, "> " .. translate("language") .. ": " .. currentLanguage, 0.7, 0xFFFF0000)
+        else
+            screen.print(100, 200, translate("language") .. ": " .. currentLanguage, 0.7, 0xFF000000)
+        end
+
+        screen.print(100, 250, translate("backToMenuHint"), 0.7, 0xFF000000)
         screen.flip()
 
         buttons.read()
         if buttons.down then
             settingsSelection = settingsSelection + 1
-            if settingsSelection > 2 then
+            if settingsSelection > 3 then
                 settingsSelection = 1
             end
         elseif buttons.up then
             settingsSelection = settingsSelection - 1
             if settingsSelection < 1 then
-                settingsSelection = 2
+                settingsSelection = 3
             end
         elseif buttons.cross then
             if settingsSelection == 1 then
@@ -463,6 +555,16 @@ function showSettings()
                 end
             elseif settingsSelection == 2 then
                 settings.soundEnabled = not settings.soundEnabled
+            elseif settingsSelection == 3 then
+                -- Cambia lingua
+                if currentLanguage == "it" then
+                    currentLanguage = "en"
+                elseif currentLanguage == "en" then
+                    currentLanguage = "es"
+                else
+                    currentLanguage = "it"
+                end
+                saveConfig() -- Salva la nuova lingua
             end
         elseif buttons.circle then
             break
