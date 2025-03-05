@@ -1,6 +1,16 @@
 -- script.lua
 -- Logica principale del gioco.
 
+-- Funzione per creare la cartella se non esiste
+function createDirectoryIfNotExists(path)
+    if not files.exists(path) then
+        files.mkdir(path)
+    end
+end
+
+-- Creazione della cartella all'avvio
+createDirectoryIfNotExists("ux0:/data/dino_game")
+
 -- Variabili del gioco
 local dino = {
     x = 50,                  -- Posizione X del dinosauro
