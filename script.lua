@@ -18,8 +18,20 @@ local dino = {
     speed = 0,               -- Velocità verticale del dinosauro
     width = 50,              -- Larghezza del dinosauro
     height = 50,             -- Altezza del dinosauro
-    image = image.load("assets/images/dino.png")
+    image = nil              -- Immagine corrente (verrà impostata dall'animazione)
 }
+
+-- Carica i frame dell'animazione del dinosauro
+local dinoFrames = {
+    image.load("assets/images/dino_run1.png"), -- Frame 1 della corsa
+    image.load("assets/images/dino_run2.png")  -- Frame 2 della corsa
+}
+local dinoJumpFrame = image.load("assets/images/dino_jump.png") -- Frame del salto
+local dinoGameOverFrame = image.load("assets/images/dino_gameover.png") -- Frame di "game over"
+
+local currentFrame = 1       -- Frame corrente
+local frameTimer = 0         -- Timer per l'animazione
+local frameInterval = 10     -- Intervallo tra i frame (in frame del gioco)
 
 local cacti = {}             -- Tabella per memorizzare i cactus
 local cactusSpeed = -5       -- Velocità base dei cactus
@@ -32,28 +44,12 @@ local score = 0              -- Punteggio del gioco
 local gameOver = false       -- Stato del gioco (true se il gioco è finito)
 local highScore = 0          -- Highscore
 
--- Funzione per caricare l'highscore da file
-function loadHighScore()
-    local file = io.open("ux0:/data/dino_game/highscore.txt", "r")
-    if file then
-        highScore = tonumber(file:read("*a")) or 0
-        file:close()
-    else
-        highScore = 0
-    end
-end
-
--- Funzione per salvare l'highscore su file
-function saveHighScore()
-    local file = io.open("ux0:/data/dino_game/highscore.txt", "w")
-    if file then
-        file:write(tostring(highScore))
-        file:close()
-    end
-end
-
 -- Carica l'highscore all'avvio
-loadHighScore()
+local saveData = io.open("ux0:/data/dino_game/highscore.txt", "r")
+if saveData then
+    highScore = tonumber(saveData:read("*a")) or 0
+    saveData:close()
+end
 
 -- Variabili per lo sfondo scorrevole
 local background = {
@@ -113,6 +109,23 @@ function updateBackground()
     end
 end
 
+-- Funzione per aggiornare l'animazione del dinosauro
+function updateDinoAnimation()
+    if dino.y == 200 then -- Se il dinosauro è a terra
+        frameTimer = frameTimer + 1
+        if frameTimer >= frameInterval then
+            currentFrame = currentFrame + 1
+            if currentFrame > #dinoFrames then
+                currentFrame = 1
+            end
+            frameTimer = 0
+        end
+        dino.image = dinoFrames[currentFrame] -- Usa il frame corrente
+    else
+        dino.image = dinoJumpFrame -- Usa il frame del salto
+    end
+end
+
 -- Funzione di caricamento
 function load()
     screen.clear(0xFFFFFFFF)
@@ -129,6 +142,9 @@ function update()
             dino.y = 200
             dino.speed = 0
         end
+
+        -- Aggiorna l'animazione del dinosauro
+        updateDinoAnimation()
 
         -- Genera nuovi cactus
         cactusSpawnTimer = cactusSpawnTimer + 1
@@ -153,7 +169,11 @@ function update()
                 gameOver = true
                 if score > highScore then
                     highScore = score
-                    saveHighScore()
+                    local file = io.open("ux0:/data/dino_game/highscore.txt", "w")
+                    if file then
+                        file:write(tostring(highScore))
+                        file:close()
+                    end
                 end
                 if gameOverSound then
                     sound.play(gameOverSound)
@@ -170,12 +190,21 @@ function draw()
     screen.clear(0xFFFFFFFF)
     image.blit(background.image, background.x1, 0)
     image.blit(background.image, background.x2, 0)
-    image.blit(dino.image, dino.x, dino.y)
 
+    if gameOver then
+        -- Mostra il frame di "game over"
+        image.blit(dinoGameOverFrame, dino.x, dino.y)
+    else
+        -- Mostra il frame corrente dell'animazione
+        image.blit(dino.image, dino.x, dino.y)
+    end
+
+    -- Disegna i cactus
     for _, cactus in ipairs(cacti) do
         image.blit(cactus.image, cactus.x, cactus.y)
     end
 
+    -- Disegna il punteggio e l'highscore
     screen.print(10, 10, "Score: " .. score, 0.7, 0xFF000000)
     screen.print(10, 30, "High Score: " .. highScore, 0.7, 0xFF000000)
 
