@@ -1,2 +1,2 @@
-# Dino-Game
-T-Rex Dinosaur (Google Dino Game) - a replica of a game hidden in the Chrome browser when there is no Internet for PSVITA
+# Dino Game
+This is a replica of the classic game hidden in the Google Chrome browser when there is no internet written in OneLua.
