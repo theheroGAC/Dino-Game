@@ -40,11 +40,11 @@ local translations = {
         score = "Score",
         highScore = "High Score",
         time = "Time",
-        gameOver = "Game Over",
+        gameOver = "Game Over!",
         restart = "Press X to Restart",
         pause = "Pause",
         resume = "Resume",
-        backToMenu = "Back to Menu",
+        backToMenu = "Square to return to the menu",
         music = "Music",
         sounds = "Sounds",
         language = "Language",
@@ -72,8 +72,8 @@ local translations = {
     }
 }
 
--- Lingua corrente (predefinita: italiano)
-local currentLanguage = "it"
+-- Lingua corrente (predefinita: english)
+local currentLanguage = "en"
 
 -- Funzione di traduzione
 function translate(key)
