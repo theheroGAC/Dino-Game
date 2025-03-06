@@ -1,2 +1,2 @@
 # Dino Game
-This is a replica of the classic game hidden in the Google Chrome browser when there is no internet written in OneLua.
+This is a replica of the classic easter egg game in Google Chrome while there isn't internet that is written in OneLua for the PS Vita.
