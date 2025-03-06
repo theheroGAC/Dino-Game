@@ -1,4 +1,5 @@
--- script.lua
+color.loadpalette() -- much more easier to work with rather than hex values
+-- script.lua Written by theHeroGAC and Harommel OddSock
 -- Logica principale del gioco.
 
 -- Funzione per creare la cartella se non esiste
@@ -39,17 +40,36 @@ local translations = {
         exit = "Exit",
         score = "Score",
         highScore = "High Score",
-        time = "Time",
+        time = "Remaining Time", 
         gameOver = "Game Over!",
         restart = "Press X to Restart",
         pause = "Pause",
         resume = "Resume",
-        backToMenu = "Circle to return to the menu",
+        backToMenu = "Circle to return to the menu", 
         music = "Music",
         sounds = "Sounds",
         language = "Language",
         infinite = "Infinite",
         timed = "Timed",
+    },
+    fr = {
+        play = "Jouer",
+        pause = "Pause",
+        exit = "Quitter",
+        instructions = "Instructions",
+        settings = "Réglage", 
+        score = "Score",
+        highScore = "Score Élevé", 
+        time = "Temps Restant", 
+        gameOver = "Jeu Terminé!", 
+        restart = "X pour redémarrer", 
+        resume = "Rependre", 
+        backToMenu = "Cercle pour revenir au menu", 
+        music = "Musique", 
+        sounds = "Sons", 
+        language = "Langue", 
+        infinite = "Infini", 
+        timed = "Chronométré", 
     },
     es = {
         play = "Jugar",
@@ -74,7 +94,7 @@ local translations = {
 
 -- Lingua corrente (predefinita: english)
 local currentLanguage = "en"
-
+local currentLanguageStr = {["en"]="English", ["it"]="Italiano", ["es"]="Espagnol", ["fr"]="Fran  ais"}
 -- Funzione di traduzione
 function translate(key)
     return translations[currentLanguage][key] or "[" .. key .. "]"
@@ -108,8 +128,8 @@ local dino = {
     x = 50,                  -- Posizione X del dinosauro
     y = 200,                 -- Posizione Y del dinosauro
     speed = 0,               -- Velocità verticale del dinosauro
-    width = 50,              -- Larghezza del dinosauro
-    height = 50,             -- Altezza del dinosauro
+    width = 30,              -- Larghezza del dinosauro 
+    height = 30,             -- Altezza del dinosauro 
     image = nil,             -- Immagine corrente (verrà impostata dall'animazione)
     isDucking = false        -- Indica se il dinosauro è abbassato
 }
@@ -166,7 +186,7 @@ end
 local background = {
     x1 = 0,                  -- Posizione X della prima immagine di sfondo
     x2 = 960,                -- Posizione X della seconda immagine di sfondo (larghezza dell'immagine)
-    speed = -2,              -- Velocità di scorrimento dello sfondo
+    speed = -5,              -- Velocit   di scorrimento dello sfondo 
     image = image.load("assets/images/background.png")
 }
 
@@ -199,8 +219,8 @@ function spawnCactus()
             x = 800 + (i * spacing),
             y = 200,
             speed = cactusSpeed,
-            width = 50,
-            height = 50,
+            width = 30, 
+            height = 30, 
             image = cactusImages[currentCactusImage]
         })
 
@@ -339,8 +359,8 @@ end
 -- Funzione di disegno
 function draw()
     screen.clear(0xFFFFFFFF)
-    image.blit(background.image, background.x1, 260)
-    image.blit(background.image, background.x2, 260)
+    image.blit(background.image, background.x1, 0) 
+    image.blit(background.image, background.x2, 0) 
 
     if gameOver then
         -- Mostra il frame di "game over"
@@ -356,17 +376,17 @@ function draw()
     end
 
     -- Disegna il punteggio e l'highscore
-    screen.print(10, 10, translate("score") .. ": " .. score, 0.7, 0xFF000000)
-    screen.print(10, 30, translate("highScore") .. ": " .. highScore, 0.7, 0xFF000000)
+    screen.print(10, 10, translate("score") .. ": " .. score, 0.7, color.gray) 
+    screen.print(10, 30, translate("highScore") .. ": " .. highScore, 0.7, color.gray) 
 
     -- Disegna il timer per la modalità a tempo
     if gameMode == "timed" then
-        screen.print(10, 50, translate("time") .. ": " .. math.floor(timeLeft), 0.7, 0xFF000000)
+        screen.print(10, 50, translate("time")..": " ..math.floor(timeLeft).." seconds", 0.7, color.gray) 
     end
 
     if gameOver then
-        screen.print(300, 200, translate("gameOver"), 0.7, 0xFFFF0000)
-        screen.print(280, 250, translate("restart"), 0.7, 0xFFFF0000)
+        screen.print(300, 200, translate("gameOver"), 0.7, color.gray) 
+        screen.print(280, 250, translate("restart"), 0.7, color.gray) 
     elseif isPaused then
         drawPauseMenu()
     end
@@ -376,10 +396,10 @@ end
 
 -- Funzione per disegnare il menu di pausa
 function drawPauseMenu()
-    screen.print(300, 100, translate("pause"), 0.7, 0xFFFF0000)
-    screen.print(280, 150, translate("resume"), 0.7, 0xFFFF0000)
-    screen.print(280, 200, translate("restart"), 0.7, 0xFFFF0000)
-    screen.print(280, 250, translate("backToMenu"), 0.7, 0xFFFF0000)
+    screen.print(300, 100, translate("pause"), 0.7, color.gray) 
+    screen.print(280, 150, translate("resume"), 0.7, color.gray) 
+    screen.print(280, 200, translate("restart"), 0.7, color.gray) 
+    screen.print(280, 250, translate("backToMenu"), 0.7, color.gray) 
 end
 
 -- Gestione degli input
@@ -387,13 +407,13 @@ function handleInput()
     buttons.read()
 
     if buttons.cross and dino.y == 200 then
-        dino.speed = -10
+        dino.speed = -15
         if jumpSound and settings.soundEnabled then
             sound.play(jumpSound, false, 1) -- Priorità bassa
         end
     end
 
-    if buttons.square and dino.y == 200 then
+    if buttons.held.square and dino.y == 200 then 
         dino.isDucking = true
     else
         dino.isDucking = false
@@ -408,7 +428,7 @@ function handleInput()
     if buttons.start then
         isPaused = not isPaused
         if isPaused then
-            sound.stop(backgroundMusic) -- Ferma la musica in pausa
+            sound.pause(backgroundMusic) -- Ferma la musica in pausa 
         else
             if settings.musicEnabled then
                 sound.play(backgroundMusic, true) -- Riprendi la musica
@@ -440,7 +460,7 @@ function drawMenu()
     if titleY > 70 or titleY < 50 then
         titleDirection = -titleDirection
     end
-    screen.print(200, titleY, "Dino Game", 1.0, 0xFF000000)
+    screen.print(200, titleY, "Dino Game", 1.0, color.gray) 
 
     -- Opzioni del menu
     if menuSelection == 1 then
@@ -476,7 +496,7 @@ function drawMenu()
     screen.flip()
 end
 
--- Funzione per gestire l'input nel menu
+-- Funzione per gestire l'input nel menu I'll rewrite this sloppy code soon
 function handleMenuInput()
     buttons.read()
 
@@ -516,10 +536,10 @@ end
 function showInstructions()
     while true do
         screen.clear(0xFFFFFFFF)
-        screen.print(100, 50, translate("instructions") .. ":", 0.7, 0xFF000000)
-        screen.print(100, 100, translate("jumpHint"), 0.7, 0xFF000000)
-        screen.print(100, 150, translate("avoidCacti"), 0.7, 0xFF000000)
-        screen.print(100, 200, translate("backToMenuHint"), 0.7, 0xFF000000)
+        screen.print(100, 50, translate("instructions") .. ":", 0.7, color.gray) 
+        screen.print(100, 100, translate("jumpHint"), 0.7, color.gray) 
+        screen.print(100, 150, translate("avoidCacti"), 0.7, color.gray) 
+        screen.print(100, 200, translate("backToMenu"), 0.7, color.gray) 
         screen.flip()
 
         buttons.read()
@@ -551,12 +571,12 @@ function showSettings()
         end
 
         if settingsSelection == 3 then
-            screen.print(100, 200, "> " .. translate("language") .. ": " .. currentLanguage, 0.7, 0xFFFF0000)
+            screen.print(100, 200, "> " .. translate("language") .. ": " .. currentLanguageStr[currentLanguage], 0.7, 0xFFFF0000)
         else
-            screen.print(100, 200, translate("language") .. ": " .. currentLanguage, 0.7, 0xFF000000)
+            screen.print(100, 200, translate("language") .. ": " .. currentLanguageStr[currentLanguage], 0.7, 0xFF000000)
         end
 
-        screen.print(100, 250, translate("backToMenuHint"), 0.7, 0xFF000000)
+        screen.print(100, 250, translate("backToMenu"), 0.7, 0xFF000000) 
         screen.flip()
 
         buttons.read()
@@ -581,13 +601,15 @@ function showSettings()
             elseif settingsSelection == 2 then
                 settings.soundEnabled = not settings.soundEnabled
             elseif settingsSelection == 3 then
-                -- Cambia lingua
+                -- Cambia lingua Rewrite this aswell
                 if currentLanguage == "it" then
                     currentLanguage = "en"
                 elseif currentLanguage == "en" then
-                    currentLanguage = "es"
+                    currentLanguage = "fr" 
+                elseif currentLanguage == "fr" then 
+                    currentLanguage = "es" 
                 else
-                    currentLanguage = "it"
+                    currentLanguage = "it" 
                 end
                 saveConfig() -- Salva la nuova lingua
             end
