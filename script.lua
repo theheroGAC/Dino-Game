@@ -72,8 +72,8 @@ local translations = {
     }
 }
 
--- Lingua corrente (predefinita: inglese)
-local currentLanguage = "en"
+-- Lingua corrente (predefinita: italiano)
+local currentLanguage = "it"
 
 -- Funzione di traduzione
 function translate(key)
@@ -86,7 +86,7 @@ local configFile = "ux0:/data/dino_game/config.txt"
 local function loadConfig()
     local file = io.open(configFile, "r")
     if file then
-        currentLanguage = file:read("*a") or "en" -- Predefinita: inglese
+        currentLanguage = file:read("*a") or "it"
         file:close()
     end
 end
@@ -110,16 +110,22 @@ local dino = {
     speed = 0,               -- Velocità verticale del dinosauro
     width = 50,              -- Larghezza del dinosauro
     height = 50,             -- Altezza del dinosauro
-    image = nil              -- Immagine corrente (verrà impostata dall'animazione)
+    image = nil,             -- Immagine corrente (verrà impostata dall'animazione)
+    isDucking = false        -- Indica se il dinosauro è abbassato
 }
 
 -- Carica i frame dell'animazione del dinosauro
 local dinoFrames = {
-    image.load("assets/images/dino_run1.png"), -- Frame 1 della corsa
-    image.load("assets/images/dino_run2.png")  -- Frame 2 della corsa
+    image.load("assets/images/DinoRun1.png"), -- Frame 1 della corsa
+    image.load("assets/images/DinoRun2.png")  -- Frame 2 della corsa
 }
-local dinoJumpFrame = image.load("assets/images/dino_jump.png") -- Frame del salto
-local dinoGameOverFrame = image.load("assets/images/dino_gameover.png") -- Frame di "game over"
+local dinoJumpFrame = image.load("assets/images/DinoJump.png") -- Frame del salto
+local dinoGameOverFrame = image.load("assets/images/DinoDead.png") -- Frame di "game over"
+local dinoDuckFrames = {
+    image.load("assets/images/DinoDuck1.png"), -- Frame 1 dell'abbassamento
+    image.load("assets/images/DinoDuck2.png")  -- Frame 2 dell'abbassamento
+}
+local dinoStartFrame = image.load("assets/images/DinoStart.png") -- Frame di inizio
 
 local currentFrame = 1       -- Frame corrente
 local frameTimer = 0         -- Timer per l'animazione
@@ -135,7 +141,6 @@ local gravity = 0.5          -- Gravità applicata al dinosauro
 local score = 0              -- Punteggio del gioco
 local gameOver = false       -- Stato del gioco (true se il gioco è finito)
 local highScore = 0          -- Highscore
-local combo = 0              -- Combo di cactus saltati consecutivamente
 
 -- Modalità di gioco
 local gameMode = "infinite"  -- Modalità predefinita: infinita
@@ -222,15 +227,27 @@ end
 -- Funzione per aggiornare l'animazione del dinosauro
 function updateDinoAnimation()
     if dino.y == 200 then -- Se il dinosauro è a terra
-        frameTimer = frameTimer + 1
-        if frameTimer >= frameInterval then
-            currentFrame = currentFrame + 1
-            if currentFrame > #dinoFrames then
-                currentFrame = 1
+        if dino.isDucking then
+            frameTimer = frameTimer + 1
+            if frameTimer >= frameInterval then
+                currentFrame = currentFrame + 1
+                if currentFrame > #dinoDuckFrames then
+                    currentFrame = 1
+                end
+                frameTimer = 0
             end
-            frameTimer = 0
+            dino.image = dinoDuckFrames[currentFrame] -- Usa il frame corrente dell'abbassamento
+        else
+            frameTimer = frameTimer + 1
+            if frameTimer >= frameInterval then
+                currentFrame = currentFrame + 1
+                if currentFrame > #dinoFrames then
+                    currentFrame = 1
+                end
+                frameTimer = 0
+            end
+            dino.image = dinoFrames[currentFrame] -- Usa il frame corrente della corsa
         end
-        dino.image = dinoFrames[currentFrame] -- Usa il frame corrente
     else
         dino.image = dinoJumpFrame -- Usa il frame del salto
     end
@@ -240,9 +257,9 @@ end
 function resetGame()
     dino.y = 200
     dino.speed = 0
+    dino.isDucking = false
     cacti = {}
     score = 0
-    combo = 0
     gameOver = false
     if gameMode == "timed" then
         timeLeft = 60 -- Resetta il timer per la modalità a tempo
@@ -254,19 +271,6 @@ function load()
     screen.clear(0xFFFFFFFF)
     if settings.musicEnabled then
         sound.play(backgroundMusic, true) -- Riproduci la musica in loop
-    end
-end
-
--- Funzione per gestire il touchscreen
-function handleTouchInput()
-    touch.read() -- Legge l'input del touchscreen
-
-    if touch.front.count > 0 and dino.y == 200 then
-        dino.speed = -10 -- Fai saltare il dinosauro
-        combo = 0 -- Resetta la combo quando il dinosauro salta
-        if jumpSound and settings.soundEnabled then
-            sound.play(jumpSound, false, 1) -- Riproduci il suono del salto
-        end
     end
 end
 
@@ -308,14 +312,12 @@ function update()
             if cactus.x < -cactus.width then
                 table.remove(cacti, i)
                 score = score + 1
-                combo = combo + 1 -- Incrementa la combo
             end
 
             if cactus.x < dino.x + dino.width and
                cactus.x + cactus.width > dino.x and
                dino.y + dino.height > cactus.y then
                 gameOver = true
-                combo = 0 -- Resetta la combo
                 if score > highScore then
                     highScore = score
                     local file = io.open("ux0:/data/dino_game/highscore.txt", "w")
@@ -337,8 +339,8 @@ end
 -- Funzione di disegno
 function draw()
     screen.clear(0xFFFFFFFF)
-    image.blit(background.image, background.x1, 0)
-    image.blit(background.image, background.x2, 0)
+    image.blit(background.image, background.x1, 260)
+    image.blit(background.image, background.x2, 260)
 
     if gameOver then
         -- Mostra il frame di "game over"
@@ -359,32 +361,7 @@ function draw()
 
     -- Disegna il timer per la modalità a tempo
     if gameMode == "timed" then
-        -- Barra di progressione del timer
-        local barWidth = 200
-        local barHeight = 10
-        local barX = (960 - barWidth) / 2 -- Centra la barra orizzontalmente
-        local barY = 20 -- Posizione Y della barra
-        local progress = timeLeft / 60 -- Percentuale del tempo rimanente
-
-        -- Disegna il bordo della barra
-        screen.drawLine(barX, barY, barX + barWidth, barY, 0xFF000000) -- Linea superiore
-        screen.drawLine(barX, barY + barHeight, barX + barWidth, barY + barHeight, 0xFF000000) -- Linea inferiore
-        screen.drawLine(barX, barY, barX, barY + barHeight, 0xFF000000) -- Linea sinistra
-        screen.drawLine(barX + barWidth, barY, barX + barWidth, barY + barHeight, 0xFF000000) -- Linea destra
-
-        -- Disegna il riempimento della barra
-        screen.fillRect(barX, barY, barWidth * progress, barHeight, 0xFF00FF00) -- Riempimento della barra
-    end
-
-    -- Disegna l'indicatore di combo
-    if combo > 1 then
-        local comboColor = 0xFF0000FF -- Blu di default
-        if combo >= 5 then
-            comboColor = 0xFFFF0000 -- Rosso per combo alte
-        elseif combo >= 3 then
-            comboColor = 0xFF00FF00 -- Verde per combo medie
-        end
-        screen.print(10, 70, "Combo: x" .. combo, 0.7, comboColor)
+        screen.print(10, 50, translate("time") .. ": " .. math.floor(timeLeft), 0.7, 0xFF000000)
     end
 
     if gameOver then
@@ -409,20 +386,26 @@ end
 function handleInput()
     buttons.read()
 
-    -- Salto con il tasto X
     if buttons.cross and dino.y == 200 then
         dino.speed = -10
-        combo = 0 -- Resetta la combo quando il dinosauro salta
         if jumpSound and settings.soundEnabled then
             sound.play(jumpSound, false, 1) -- Priorità bassa
         end
     end
 
-    -- Gestione del touchscreen
-    handleTouchInput() -- Chiama la funzione per gestire il touchscreen
+    if buttons.square and dino.y == 200 then
+        dino.isDucking = true
+    else
+        dino.isDucking = false
+    end
 
-    -- Pausa con il tasto L
-    if buttons.l then
+    if gameOver and buttons.cross then
+        gameOver = false
+        resetGame() -- Resetta il gioco
+    end
+
+    -- Gestione della pausa
+    if buttons.start then
         isPaused = not isPaused
         if isPaused then
             sound.stop(backgroundMusic) -- Ferma la musica in pausa
@@ -431,11 +414,6 @@ function handleInput()
                 sound.play(backgroundMusic, true) -- Riprendi la musica
             end
         end
-    end
-
-    -- Riavvia il gioco con il tasto R
-    if buttons.r then
-        resetGame()
     end
 
     -- Gestione del menu di pausa
@@ -462,37 +440,37 @@ function drawMenu()
     if titleY > 70 or titleY < 50 then
         titleDirection = -titleDirection
     end
-    screen.print(480, titleY, "Dino Game", 1.0, 0xFF000000, 0xFFFFFFFF, 1) -- Titolo centrato con ombra
+    screen.print(200, titleY, "Dino Game", 1.0, 0xFF000000)
 
     -- Opzioni del menu
     if menuSelection == 1 then
-        screen.print(480, 150, "> " .. translate("play") .. " (" .. translate("infinite") .. ")", 0.7, 0xFFFF0000, 0xFF000000, 1) -- Testo rosso con ombra nera
+        screen.print(200, 150, "> " .. translate("play") .. " (" .. translate("infinite") .. ")", 0.7, 0xFFFF0000)
     else
-        screen.print(480, 150, translate("play") .. " (" .. translate("infinite") .. ")", 0.7, 0xFF000000, 0xFFFFFFFF, 1) -- Testo nero con ombra bianca
+        screen.print(200, 150, translate("play") .. " (" .. translate("infinite") .. ")", 0.7, 0xFF000000)
     end
 
     if menuSelection == 2 then
-        screen.print(480, 200, "> " .. translate("play") .. " (" .. translate("timed") .. ")", 0.7, 0xFFFF0000, 0xFF000000, 1)
+        screen.print(200, 200, "> " .. translate("play") .. " (" .. translate("timed") .. ")", 0.7, 0xFFFF0000)
     else
-        screen.print(480, 200, translate("play") .. " (" .. translate("timed") .. ")", 0.7, 0xFF000000, 0xFFFFFFFF, 1)
+        screen.print(200, 200, translate("play") .. " (" .. translate("timed") .. ")", 0.7, 0xFF000000)
     end
 
     if menuSelection == 3 then
-        screen.print(480, 250, "> " .. translate("instructions"), 0.7, 0xFFFF0000, 0xFF000000, 1)
+        screen.print(200, 250, "> " .. translate("instructions"), 0.7, 0xFFFF0000)
     else
-        screen.print(480, 250, translate("instructions"), 0.7, 0xFF000000, 0xFFFFFFFF, 1)
+        screen.print(200, 250, translate("instructions"), 0.7, 0xFF000000)
     end
 
     if menuSelection == 4 then
-        screen.print(480, 300, "> " .. translate("settings"), 0.7, 0xFFFF0000, 0xFF000000, 1)
+        screen.print(200, 300, "> " .. translate("settings"), 0.7, 0xFFFF0000)
     else
-        screen.print(480, 300, translate("settings"), 0.7, 0xFF000000, 0xFFFFFFFF, 1)
+        screen.print(200, 300, translate("settings"), 0.7, 0xFF000000)
     end
 
     if menuSelection == 5 then
-        screen.print(480, 350, "> " .. translate("exit"), 0.7, 0xFFFF0000, 0xFF000000, 1)
+        screen.print(200, 350, "> " .. translate("exit"), 0.7, 0xFFFF0000)
     else
-        screen.print(480, 350, translate("exit"), 0.7, 0xFF000000, 0xFFFFFFFF, 1)
+        screen.print(200, 350, translate("exit"), 0.7, 0xFF000000)
     end
 
     screen.flip()
