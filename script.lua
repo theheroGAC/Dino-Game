@@ -1,7 +1,6 @@
  color.loadpalette() -- much more easier to work with rather than hex values
 -- script.lua Written by theHeroGAC and Harommel OddSock
 -- Carica la palette di colori
-color.loadpalette()
 
 -- Funzione per creare la cartella se non esiste
 function createDirectoryIfNotExists(path)
@@ -206,7 +205,11 @@ local backgroundMusic = sound.load("assets/sounds/background_music.mp3")
 -- Carica le immagini dei cactus
 local cactusImages = {
     image.load("assets/images/cactus.png"),
-    image.load("assets/images/cactus2.png")
+    image.load("assets/images/cactus2.png"),
+    image.load("assets/images/cactus3.png"),
+    image.load("assets/images/cactus4.png"),
+    image.load("assets/images/cactus5.png"),
+    image.load("assets/images/cactus6.png")
 }
 
 local currentCactusImage = 1 -- Immagine corrente del cactus
@@ -216,19 +219,15 @@ function spawnCactus()
     local numCacti = math.min(math.floor(score / 20) + 1, maxCacti)
     for i = 1, numCacti do
         local spacing = 100  -- Distanza orizzontale tra i cactus
+        local cactusType = math.random(1, #cactusImages) -- Scegli un tipo di cactus casuale
         table.insert(cacti, {
             x = 800 + (i * spacing),
             y = 200,
             speed = cactusSpeed,
             width = 30, 
             height = 30, 
-            image = cactusImages[currentCactusImage]
+            image = cactusImages[cactusType] -- Usa l'immagine casuale
         })
-
-        currentCactusImage = currentCactusImage + 1
-        if currentCactusImage > #cactusImages then
-            currentCactusImage = 1
-        end
     end
 end
 
