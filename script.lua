@@ -1,6 +1,5 @@
-color.loadpalette() -- much more easier to work with rather than hex values
+ color.loadpalette() -- much more easier to work with rather than hex values
 -- script.lua Written by theHeroGAC and Harommel OddSock
--- Logica principale del gioco.
 
 -- Funzione per creare la cartella se non esiste
 function createDirectoryIfNotExists(path)
@@ -186,7 +185,7 @@ end
 local background = {
     x1 = 0,                  -- Posizione X della prima immagine di sfondo
     x2 = 960,                -- Posizione X della seconda immagine di sfondo (larghezza dell'immagine)
-    speed = -5,              -- Velocit   di scorrimento dello sfondo 
+    speed = -5,              -- Velocità di scorrimento dello sfondo 
     image = image.load("assets/images/background.png")
 }
 
@@ -288,7 +287,7 @@ end
 
 -- Funzione di caricamento
 function load()
-    screen.clear(0xFFFFFFFF)
+    screen.clear(color.white)
     if settings.musicEnabled then
         sound.play(backgroundMusic, true) -- Riproduci la musica in loop
     end
@@ -358,9 +357,9 @@ end
 
 -- Funzione di disegno
 function draw()
-    screen.clear(0xFFFFFFFF)
-    image.blit(background.image, background.x1, 0) 
-    image.blit(background.image, background.x2, 0) 
+    screen.clear(color.white)
+    image.blit(background.image, background.x1, 262) 
+    image.blit(background.image, background.x2, 262) 
 
     if gameOver then
         -- Mostra il frame di "game over"
@@ -405,18 +404,29 @@ end
 -- Gestione degli input
 function handleInput()
     buttons.read()
+    touch.read()
 
-    if buttons.cross and dino.y == 200 then
-        dino.speed = -15
-        if jumpSound and settings.soundEnabled then
-            sound.play(jumpSound, false, 1) -- Priorità bassa
+    -- Controllo touch per il salto
+    if touch.front.count > 0 then
+        for i = 1, touch.front.count do
+            if touch.front[i].pressed and touch.front[i].y > 200 and dino.y == 200 then
+                dino.speed = -15
+                if jumpSound and settings.soundEnabled then
+                    sound.play(jumpSound, false, 1) -- Priorità bassa
+                end
+            end
         end
     end
 
-    if buttons.held.square and dino.y == 200 then 
-        dino.isDucking = true
-    else
-        dino.isDucking = false
+    -- Controllo touch per l'abbassamento
+    if touch.front.count > 0 then
+        for i = 1, touch.front.count do
+            if touch.front[i].held and touch.front[i].y > 200 and dino.y == 200 then
+                dino.isDucking = true
+            else
+                dino.isDucking = false
+            end
+        end
     end
 
     if gameOver and buttons.cross then
@@ -452,7 +462,7 @@ end
 
 -- Funzione per disegnare il menu principale
 function drawMenu()
-    screen.clear(0xFFFFFFFF)
+    screen.clear(color.white)
     image.blit(menuBackground, 0, 0) -- Disegna lo sfondo del menu
 
     -- Animazione del titolo
@@ -464,54 +474,98 @@ function drawMenu()
 
     -- Opzioni del menu
     if menuSelection == 1 then
-        screen.print(200, 150, "> " .. translate("play") .. " (" .. translate("infinite") .. ")", 0.7, 0xFFFF0000)
+        screen.print(200, 150, "> " .. translate("play") .. " (" .. translate("infinite") .. ")", 0.7, color.red)
     else
-        screen.print(200, 150, translate("play") .. " (" .. translate("infinite") .. ")", 0.7, 0xFF000000)
+        screen.print(200, 150, translate("play") .. " (" .. translate("infinite") .. ")", 0.7, color.black)
     end
 
     if menuSelection == 2 then
-        screen.print(200, 200, "> " .. translate("play") .. " (" .. translate("timed") .. ")", 0.7, 0xFFFF0000)
+        screen.print(200, 200, "> " .. translate("play") .. " (" .. translate("timed") .. ")", 0.7, color.red)
     else
-        screen.print(200, 200, translate("play") .. " (" .. translate("timed") .. ")", 0.7, 0xFF000000)
+        screen.print(200, 200, translate("play") .. " (" .. translate("timed") .. ")", 0.7, color.black)
     end
 
     if menuSelection == 3 then
-        screen.print(200, 250, "> " .. translate("instructions"), 0.7, 0xFFFF0000)
+        screen.print(200, 250, "> " .. translate("instructions"), 0.7, color.red)
     else
-        screen.print(200, 250, translate("instructions"), 0.7, 0xFF000000)
+        screen.print(200, 250, translate("instructions"), 0.7, color.black)
     end
 
     if menuSelection == 4 then
-        screen.print(200, 300, "> " .. translate("settings"), 0.7, 0xFFFF0000)
+        screen.print(200, 300, "> " .. translate("settings"), 0.7, color.red)
     else
-        screen.print(200, 300, translate("settings"), 0.7, 0xFF000000)
+        screen.print(200, 300, translate("settings"), 0.7, color.black)
     end
 
     if menuSelection == 5 then
-        screen.print(200, 350, "> " .. translate("exit"), 0.7, 0xFFFF0000)
+        screen.print(200, 350, "> " .. translate("exit"), 0.7, color.red)
     else
-        screen.print(200, 350, translate("exit"), 0.7, 0xFF000000)
+        screen.print(200, 350, translate("exit"), 0.7, color.black)
     end
 
     screen.flip()
 end
 
--- Funzione per gestire l'input nel menu I'll rewrite this sloppy code soon
+-- Funzione per gestire l'input nel menu
 function handleMenuInput()
     buttons.read()
+    touch.read()
 
-    if buttons.down then
+    -- Selezione con l'analogico sinistro (asse Y)
+    local analogY = buttons.analogly
+    if analogY > 60 then -- Analogico verso il basso
         menuSelection = menuSelection + 1
         if menuSelection > 5 then
             menuSelection = 1
         end
-    elseif buttons.up then
+    elseif analogY < -60 then -- Analogico verso l'alto
         menuSelection = menuSelection - 1
         if menuSelection < 1 then
             menuSelection = 5
         end
     end
 
+    -- Selezione con il touch
+    if touch.front.count > 0 then
+        for i = 1, touch.front.count do
+            local touchX, touchY = touch.front[i].x, touch.front[i].y
+
+            -- Selezione del menu tramite touch
+            if touchY > 150 and touchY < 200 then
+                menuSelection = 1
+            elseif touchY > 200 and touchY < 250 then
+                menuSelection = 2
+            elseif touchY > 250 and touchY < 300 then
+                menuSelection = 3
+            elseif touchY > 300 and touchY < 350 then
+                menuSelection = 4
+            elseif touchY > 350 and touchY < 400 then
+                menuSelection = 5
+            end
+
+            -- Conferma selezione con touch
+            if touch.front[i].pressed then
+                if menuSelection == 1 then
+                    inMenu = false
+                    gameMode = "infinite"
+                    resetGame() -- Resetta il gioco per la modalità infinita
+                elseif menuSelection == 2 then
+                    inMenu = false
+                    gameMode = "timed"
+                    resetGame() -- Resetta il gioco per la modalità a tempo
+                    timeLeft = 60 -- Imposta il timer a 60 secondi
+                elseif menuSelection == 3 then
+                    showInstructions()
+                elseif menuSelection == 4 then
+                    showSettings()
+                elseif menuSelection == 5 then
+                    os.exit()
+                end
+            end
+        end
+    end
+
+    -- Conferma selezione con il tasto Cross (X)
     if buttons.cross then
         if menuSelection == 1 then
             inMenu = false
@@ -535,7 +589,7 @@ end
 -- Funzione per mostrare le istruzioni
 function showInstructions()
     while true do
-        screen.clear(0xFFFFFFFF)
+        screen.clear(color.white)
         screen.print(100, 50, translate("instructions") .. ":", 0.7, color.gray) 
         screen.print(100, 100, translate("jumpHint"), 0.7, color.gray) 
         screen.print(100, 150, translate("avoidCacti"), 0.7, color.gray) 
@@ -555,28 +609,28 @@ end
 function showSettings()
     local settingsSelection = 1
     while true do
-        screen.clear(0xFFFFFFFF)
-        screen.print(100, 50, translate("settings") .. ":", 0.7, 0xFF000000)
+        screen.clear(color.white)
+        screen.print(100, 50, translate("settings") .. ":", 0.7, color.black)
 
         if settingsSelection == 1 then
-            screen.print(100, 100, "> " .. translate("music") .. ": " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, 0xFFFF0000)
+            screen.print(100, 100, "> " .. translate("music") .. ": " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, color.red)
         else
-            screen.print(100, 100, translate("music") .. ": " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, 0xFF000000)
+            screen.print(100, 100, translate("music") .. ": " .. (settings.musicEnabled and "ON" or "OFF"), 0.7, color.black)
         end
 
         if settingsSelection == 2 then
-            screen.print(100, 150, "> " .. translate("sounds") .. ": " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, 0xFFFF0000)
+            screen.print(100, 150, "> " .. translate("sounds") .. ": " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, color.red)
         else
-            screen.print(100, 150, translate("sounds") .. ": " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, 0xFF000000)
+            screen.print(100, 150, translate("sounds") .. ": " .. (settings.soundEnabled and "ON" or "OFF"), 0.7, color.black)
         end
 
         if settingsSelection == 3 then
-            screen.print(100, 200, "> " .. translate("language") .. ": " .. currentLanguageStr[currentLanguage], 0.7, 0xFFFF0000)
+            screen.print(100, 200, "> " .. translate("language") .. ": " .. currentLanguageStr[currentLanguage], 0.7, color.red)
         else
-            screen.print(100, 200, translate("language") .. ": " .. currentLanguageStr[currentLanguage], 0.7, 0xFF000000)
+            screen.print(100, 200, translate("language") .. ": " .. currentLanguageStr[currentLanguage], 0.7, color.black)
         end
 
-        screen.print(100, 250, translate("backToMenu"), 0.7, 0xFF000000) 
+        screen.print(100, 250, translate("backToMenu"), 0.7, color.black) 
         screen.flip()
 
         buttons.read()
@@ -601,7 +655,7 @@ function showSettings()
             elseif settingsSelection == 2 then
                 settings.soundEnabled = not settings.soundEnabled
             elseif settingsSelection == 3 then
-                -- Cambia lingua Rewrite this aswell
+                -- Cambia lingua
                 if currentLanguage == "it" then
                     currentLanguage = "en"
                 elseif currentLanguage == "en" then
