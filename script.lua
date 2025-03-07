@@ -179,7 +179,7 @@ local bird = {
 -- Altezze per l'uccello
 local birdHeights = {150, 140, 180} -- Altezze per l'uccello
 local birdHeightIndex = 1           -- Indice per alternare le altezze
-local lastBirdSpawnScore = 0        -- Memorizza l'ultimo punteggio in cui l'uccello è apparso
+local nextBirdSpawnScore = 0        -- Memorizza il prossimo punteggio in cui l'uccello apparirà
 local isBirdActive = false          -- Indica se l'uccello è attivo
 
 -- Carica l'immagine della nuvola
@@ -308,8 +308,8 @@ end
 
 -- Funzione per aggiornare la posizione dell'uccello
 function updateBird()
-    -- Controlla se il punteggio è un multiplo di 800 e l'uccello non è già apparso
-    if score % 800 == 0 and score > lastBirdSpawnScore then
+    -- Controlla se il punteggio ha raggiunto il prossimo punteggio di spawn
+    if score >= nextBirdSpawnScore then
         bird.x = 800 -- Resetta la posizione dell'uccello
         -- Alterna l'altezza dell'uccello
         birdHeightIndex = birdHeightIndex + 1
@@ -317,7 +317,7 @@ function updateBird()
             birdHeightIndex = 1
         end
         bird.y = birdHeights[birdHeightIndex]
-        lastBirdSpawnScore = score -- Memorizza l'ultimo punteggio in cui l'uccello è apparso
+        nextBirdSpawnScore = score + math.random(400, 1200) -- Imposta il prossimo spawn su un multiplo casuale tra 400 e 1200
         isBirdActive = true -- Attiva l'uccello
     end
 
@@ -445,7 +445,7 @@ function resetGame()
     dayNightCycle.phase = "day"
     -- Resetta l'uccello
     isBirdActive = false
-    lastBirdSpawnScore = 0
+    nextBirdSpawnScore = 0
 end
 
 -- Funzione per aggiornare il ciclo giorno/notte
@@ -475,9 +475,9 @@ function drawBackgroundWithDayNight()
     image.blit(background.image, background.x2, 262) 
 end
 
--- Funzione per aumentare la velocità del gioco ogni 800 punti
+-- Funzione per aumentare la velocità del gioco ogni 400 punti
 function increaseGameSpeed()
-    if score % 800 == 0 and score > 0 then
+    if score % 400 == 0 and score > 0 then
         background.speed = background.speed - 1
         cactusSpeed = cactusSpeed - 1
         bird.speed = bird.speed - 1
@@ -533,7 +533,7 @@ function update()
         -- Aggiorna il punteggio mentre il dinosauro cammina
         updateScoreWhileWalking()
 
-        -- Aumenta la velocità del gioco ogni 800 punti
+        -- Aumenta la velocità del gioco ogni 400 punti
         increaseGameSpeed()
 
         -- Aggiorna il ciclo giorno/notte
