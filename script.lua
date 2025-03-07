@@ -1,4 +1,5 @@
- -- Carica la palette di colori
+-- script.lua Written by theHeroGAC and Harommel OddSock
+-- Carica la palette di colori
 color.loadpalette()
 
 -- Funzione per creare la cartella se non esiste
@@ -231,6 +232,9 @@ local cactusImages = {
 }
 
 local currentCactusImage = 1 -- Immagine corrente del cactus
+
+-- Variabile per memorizzare lo stato precedente del tasto quadrato
+local prevSquareState = false
 
 -- Funzione per generare un nuovo cactus
 function spawnCactus()
@@ -480,12 +484,13 @@ function handleInput()
         end
     end
 
-    -- Controllo sdraiato con il tasto quadrato
-    if buttons.square and dino.y == 200 then
-        dino.isDucking = true
-    else
-        dino.isDucking = false
+    -- Controllo abbassamento/rialzamento con il tasto quadrato
+    local currentSquareState = buttons.square
+    if currentSquareState and not prevSquareState then
+        -- Tasto quadrato premuto (non era premuto nel frame precedente)
+        dino.isDucking = not dino.isDucking -- Alterna lo stato di abbassamento
     end
+    prevSquareState = currentSquareState -- Memorizza lo stato corrente per il prossimo frame
 
     -- Controllo touch per il salto
     if touch.front.count > 0 then
@@ -495,17 +500,6 @@ function handleInput()
                 if jumpSound and settings.soundEnabled then
                     sound.play(jumpSound, false, 1) -- Priorità bassa
                 end
-            end
-        end
-    end
-
-    -- Controllo touch per l'abbassamento
-    if touch.front.count > 0 then
-        for i = 1, touch.front.count do
-            if touch.front[i].held and touch.front[i].y > 200 and dino.y == 200 then
-                dino.isDucking = true
-            else
-                dino.isDucking = false
             end
         end
     end
