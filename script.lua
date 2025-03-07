@@ -176,6 +176,12 @@ local bird = {
     frameInterval = 10      -- Intervallo tra i frame (in frame del gioco)
 }
 
+-- Altezze per l'uccello
+local birdHeights = {150, 140, 180} -- Altezze per l'uccello
+local birdHeightIndex = 1           -- Indice per alternare le altezze
+local lastBirdSpawnScore = 0        -- Memorizza l'ultimo punteggio in cui l'uccello è apparso
+local isBirdActive = false          -- Indica se l'uccello è attivo
+
 -- Carica l'immagine della nuvola
 local cloudImage = image.load("assets/images/cloud.png")
 
@@ -218,6 +224,18 @@ local background = {
     image = image.load("assets/images/background.png")
 }
 
+-- Variabili per il ciclo giorno/notte
+local dayNightCycle = {
+    timer = 0,               -- Timer per il ciclo giorno/notte
+    phase = "day",           -- Fase corrente (day, sunset, night, sunrise)
+    backgroundColors = {
+        day = color.new(255, 255, 255),       -- Colore di sfondo di giorno
+        sunset = color.new(255, 200, 100),    -- Colore di sfondo al tramonto
+        night = color.new(50, 50, 100),       -- Colore di sfondo di notte
+        sunrise = color.new(255, 150, 50)     -- Colore di sfondo all'alba
+    }
+}
+
 -- Variabili per il menu
 local inMenu = true          -- Indica se siamo nel menu
 local menuSelection = 1      -- Indica l'opzione selezionata (1 = Gioca Infinito, 2 = Gioca a Tempo, 3 = Istruzioni, 4 = Impostazioni, 5 = Esci)
@@ -244,10 +262,6 @@ local currentCactusImage = 1 -- Immagine corrente del cactus
 
 -- Variabile per memorizzare lo stato precedente del tasto quadrato
 local prevSquareState = false
-
--- Variabile per alternare l'altezza dell'uccello
-local birdHeightIndex = 1
-local birdHeights = {150, 140, 130} -- Altezze per l'uccello
 
 -- Funzione per generare un nuovo cactus
 function spawnCactus()
@@ -294,33 +308,44 @@ end
 
 -- Funzione per aggiornare la posizione dell'uccello
 function updateBird()
-    bird.x = bird.x + bird.speed
-    if bird.x < -bird.width then
-        bird.x = 800 -- Resetta la posizione dell'uccello quando esce dallo schermo
-        score = score + 1
+    -- Controlla se il punteggio è un multiplo di 800 e l'uccello non è già apparso
+    if score % 800 == 0 and score > lastBirdSpawnScore then
+        bird.x = 800 -- Resetta la posizione dell'uccello
         -- Alterna l'altezza dell'uccello
         birdHeightIndex = birdHeightIndex + 1
         if birdHeightIndex > #birdHeights then
             birdHeightIndex = 1
         end
         bird.y = birdHeights[birdHeightIndex]
+        lastBirdSpawnScore = score -- Memorizza l'ultimo punteggio in cui l'uccello è apparso
+        isBirdActive = true -- Attiva l'uccello
     end
 
-    -- Controlla la collisione con il dinosauro
-    if bird.x < dino.x + dino.width and
-       bird.x + bird.width > dino.x and
-       dino.y + dino.height > bird.y then
-        gameOver = true
-        if score > highScore then
-            highScore = score
-            local file = io.open("ux0:/data/dino_game/highscore.txt", "w")
-            if file then
-                file:write(tostring(highScore))
-                file:close()
+    -- Aggiorna la posizione dell'uccello solo se è attivo
+    if isBirdActive then
+        bird.x = bird.x + bird.speed
+
+        -- Controlla la collisione con il dinosauro
+        if bird.x < dino.x + dino.width and
+           bird.x + bird.width > dino.x and
+           dino.y + dino.height > bird.y then
+            gameOver = true
+            if score > highScore then
+                highScore = score
+                local file = io.open("ux0:/data/dino_game/highscore.txt", "w")
+                if file then
+                    file:write(tostring(highScore))
+                    file:close()
+                end
+            end
+            if gameOverSound and settings.soundEnabled then
+                sound.play(gameOverSound, false, 1) -- Priorità bassa
             end
         end
-        if gameOverSound and settings.soundEnabled then
-            sound.play(gameOverSound, false, 1) -- Priorità bassa
+
+        -- Disattiva l'uccello quando esce dallo schermo
+        if bird.x < -bird.width then
+            isBirdActive = false
         end
     end
 end
@@ -408,11 +433,55 @@ function resetGame()
     dino.isDucking = false
     cacti = {}
     bird.x = 800 -- Resetta la posizione dell'uccello
+    bird.y = birdHeights[birdHeightIndex] -- Imposta l'altezza casuale
     clouds = {}  -- Resetta le nuvole
     score = 0
     gameOver = false
     if gameMode == "timed" then
         timeLeft = 60 -- Resetta il timer per la modalità a tempo
+    end
+    -- Resetta il ciclo giorno/notte
+    dayNightCycle.timer = 0
+    dayNightCycle.phase = "day"
+    -- Resetta l'uccello
+    isBirdActive = false
+    lastBirdSpawnScore = 0
+end
+
+-- Funzione per aggiornare il ciclo giorno/notte
+function updateDayNightCycle()
+    dayNightCycle.timer = dayNightCycle.timer + 1 / 60 -- Incrementa il timer ogni secondo
+
+    -- Cambia fase ogni 1 minuto (60 secondi)
+    if dayNightCycle.timer >= 60 then
+        dayNightCycle.timer = 0
+        if dayNightCycle.phase == "day" then
+            dayNightCycle.phase = "sunset"
+        elseif dayNightCycle.phase == "sunset" then
+            dayNightCycle.phase = "night"
+        elseif dayNightCycle.phase == "night" then
+            dayNightCycle.phase = "sunrise"
+        elseif dayNightCycle.phase == "sunrise" then
+            dayNightCycle.phase = "day"
+        end
+    end
+end
+
+-- Funzione per disegnare lo sfondo con il ciclo giorno/notte
+function drawBackgroundWithDayNight()
+    local bgColor = dayNightCycle.backgroundColors[dayNightCycle.phase] or color.new(255, 255, 255)
+    screen.clear(bgColor)
+    image.blit(background.image, background.x1, 262) 
+    image.blit(background.image, background.x2, 262) 
+end
+
+-- Funzione per aumentare la velocità del gioco ogni 800 punti
+function increaseGameSpeed()
+    if score % 800 == 0 and score > 0 then
+        background.speed = background.speed - 1
+        cactusSpeed = cactusSpeed - 1
+        bird.speed = bird.speed - 1
+        cloudSpeed = cloudSpeed - 1
     end
 end
 
@@ -464,6 +533,12 @@ function update()
         -- Aggiorna il punteggio mentre il dinosauro cammina
         updateScoreWhileWalking()
 
+        -- Aumenta la velocità del gioco ogni 800 punti
+        increaseGameSpeed()
+
+        -- Aggiorna il ciclo giorno/notte
+        updateDayNightCycle()
+
         -- Aggiorna la posizione dei cactus e controlla le collisioni
         for i = #cacti, 1, -1 do
             local cactus = cacti[i]
@@ -498,9 +573,7 @@ end
 
 -- Funzione di disegno
 function draw()
-    screen.clear(color.white)
-    image.blit(background.image, background.x1, 262) 
-    image.blit(background.image, background.x2, 262) 
+    drawBackgroundWithDayNight()
 
     -- Disegna le nuvole
     drawClouds()
@@ -518,8 +591,10 @@ function draw()
         image.blit(cactus.image, cactus.x, cactus.y)
     end
 
-    -- Disegna l'uccello
-    image.blit(birdImages[bird.frame], bird.x, bird.y)
+    -- Disegna l'uccello solo se è attivo
+    if isBirdActive then
+        image.blit(birdImages[bird.frame], bird.x, bird.y)
+    end
 
     -- Disegna il punteggio e l'highscore
     screen.print(10, 10, translate("score") .. ": " .. score, 0.7, color.gray) 
