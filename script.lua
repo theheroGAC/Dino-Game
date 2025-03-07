@@ -182,6 +182,14 @@ local birdHeightIndex = 1           -- Indice per alternare le altezze
 local nextBirdSpawnScore = 0        -- Memorizza il prossimo punteggio in cui l'uccello apparirà
 local isBirdActive = false          -- Indica se l'uccello è attivo
 
+-- Variabili per il movimento verticale degli uccelli
+local birdAmplitude = 20 -- Quanto si sposta su e giù
+local birdFrequency = 1 -- Velocità del movimento
+
+-- Variabili per la gravità
+local initialGravity = 0.5
+local gravity = initialGravity
+
 -- Carica l'immagine della nuvola
 local cloudImage = image.load("assets/images/cloud.png")
 
@@ -191,7 +199,6 @@ local cloudSpeed = -6         -- Velocità delle nuvole (aumentata)
 local cloudSpawnTimer = 0     -- Timer per generare nuove nuvole
 local cloudSpawnInterval = 150 -- Intervallo di generazione delle nuvole (2.5 secondi, 60 FPS * 2.5)
 
-local gravity = 0.5          -- Gravità applicata al dinosauro
 local score = 0              -- Punteggio del gioco
 local gameOver = false       -- Stato del gioco (true se il gioco è finito)
 local highScore = 0          -- Highscore
@@ -303,6 +310,13 @@ function updateBirdAnimation()
             bird.frame = 1
         end
         bird.frameTimer = 0
+    end
+end
+
+-- Funzione per aggiornare il movimento verticale dell'uccello
+function updateBirdMovement()
+    if isBirdActive then
+        bird.y = birdHeights[birdHeightIndex] + math.sin(os.clock() * birdFrequency) * birdAmplitude
     end
 end
 
@@ -446,6 +460,8 @@ function resetGame()
     -- Resetta l'uccello
     isBirdActive = false
     nextBirdSpawnScore = 0
+    -- Resetta la gravità
+    gravity = initialGravity
 end
 
 -- Funzione per aggiornare il ciclo giorno/notte
@@ -475,13 +491,10 @@ function drawBackgroundWithDayNight()
     image.blit(background.image, background.x2, 262) 
 end
 
--- Funzione per aumentare la velocità del gioco ogni 400 punti
-function increaseGameSpeed()
-    if score % 400 == 0 and score > 0 then
-        background.speed = background.speed - 1
-        cactusSpeed = cactusSpeed - 1
-        bird.speed = bird.speed - 1
-        cloudSpeed = cloudSpeed - 1
+-- Funzione per aumentare la gravità gradualmente
+function increaseGravity()
+    if score % 800 == 0 and score > 0 then
+        gravity = gravity + 0.1 -- Aumenta la gravità di 0.1 ogni 800 punti
     end
 end
 
@@ -526,6 +539,7 @@ function update()
         -- Aggiorna la posizione dell'uccello e l'animazione
         updateBird()
         updateBirdAnimation()
+        updateBirdMovement() -- Aggiorna il movimento verticale dell'uccello
 
         -- Aggiorna le nuvole
         updateClouds()
@@ -533,8 +547,8 @@ function update()
         -- Aggiorna il punteggio mentre il dinosauro cammina
         updateScoreWhileWalking()
 
-        -- Aumenta la velocità del gioco ogni 400 punti
-        increaseGameSpeed()
+        -- Aumenta la gravità gradualmente
+        increaseGravity()
 
         -- Aggiorna il ciclo giorno/notte
         updateDayNightCycle()
