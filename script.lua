@@ -1,6 +1,5 @@
- color.loadpalette() -- much more easier to work with rather than hex values
--- script.lua Written by theHeroGAC and Harommel OddSock
--- Carica la palette di colori
+ -- Carica la palette di colori
+color.loadpalette()
 
 -- Funzione per creare la cartella se non esiste
 function createDirectoryIfNotExists(path)
@@ -94,7 +93,8 @@ local translations = {
 
 -- Lingua corrente (predefinita: english)
 local currentLanguage = "en"
-local currentLanguageStr = {["en"]="English", ["it"]="Italiano", ["es"]="Espagnol", ["fr"]="Fran  ais"}
+local currentLanguageStr = {["en"]="English", ["it"]="Italiano", ["es"]="Espagnol", ["fr"]="Français"}
+
 -- Funzione di traduzione
 function translate(key)
     return translations[currentLanguage][key] or "[" .. key .. "]"
@@ -163,12 +163,17 @@ local birdImages = {
     image.load("assets/images/bird2.png")
 }
 
--- Variabili per gli uccelli
-local birds = {}             -- Tabella per memorizzare gli uccelli
-local birdSpeed = -6         -- Velocità base degli uccelli
-local birdSpawnTimer = 0     -- Timer per generare nuovi uccelli
-local birdSpawnInterval = 150 -- Intervallo di generazione degli uccelli (in frame)
-local maxBirds = 2           -- Numero massimo di uccelli
+-- Variabili per l'uccello
+local bird = {
+    x = 800,                -- Posizione X iniziale dell'uccello
+    y = 150,                -- Posizione Y dell'uccello (altezza maggiore)
+    speed = -6,             -- Velocità base dell'uccello
+    width = 30,             -- Larghezza dell'uccello
+    height = 30,            -- Altezza dell'uccello
+    frame = 1,              -- Frame corrente dell'animazione
+    frameTimer = 0,         -- Timer per l'animazione
+    frameInterval = 10      -- Intervallo tra i frame (in frame del gioco)
+}
 
 local gravity = 0.5          -- Gravità applicata al dinosauro
 local score = 0              -- Punteggio del gioco
@@ -244,21 +249,42 @@ function spawnCactus()
     end
 end
 
--- Funzione per generare un nuovo uccello
-function spawnBird()
-    local numBirds = math.min(math.floor(score / 30) + 1, maxBirds)
-    for i = 1, numBirds do
-        local spacing = 150  -- Distanza orizzontale tra gli uccelli
-        local birdType = math.random(1, #birdImages) -- Scegli un tipo di uccello casuale
-        local birdY = math.random(150, 250) -- Posizione Y casuale per l'uccello
-        table.insert(birds, {
-            x = 800 + (i * spacing),
-            y = birdY,
-            speed = birdSpeed,
-            width = 30, 
-            height = 30, 
-            image = birdImages[birdType] -- Usa l'immagine casuale
-        })
+-- Funzione per aggiornare l'animazione dell'uccello
+function updateBirdAnimation()
+    bird.frameTimer = bird.frameTimer + 1
+    if bird.frameTimer >= bird.frameInterval then
+        bird.frame = bird.frame + 1
+        if bird.frame > #birdImages then
+            bird.frame = 1
+        end
+        bird.frameTimer = 0
+    end
+end
+
+-- Funzione per aggiornare la posizione dell'uccello
+function updateBird()
+    bird.x = bird.x + bird.speed
+    if bird.x < -bird.width then
+        bird.x = 800 -- Resetta la posizione dell'uccello quando esce dallo schermo
+        score = score + 1
+    end
+
+    -- Controlla la collisione con il dinosauro
+    if bird.x < dino.x + dino.width and
+       bird.x + bird.width > dino.x and
+       dino.y + dino.height > bird.y then
+        gameOver = true
+        if score > highScore then
+            highScore = score
+            local file = io.open("ux0:/data/dino_game/highscore.txt", "w")
+            if file then
+                file:write(tostring(highScore))
+                file:close()
+            end
+        end
+        if gameOverSound and settings.soundEnabled then
+            sound.play(gameOverSound, false, 1) -- Priorità bassa
+        end
     end
 end
 
@@ -310,7 +336,7 @@ function resetGame()
     dino.speed = 0
     dino.isDucking = false
     cacti = {}
-    birds = {}
+    bird.x = 800 -- Resetta la posizione dell'uccello
     score = 0
     gameOver = false
     if gameMode == "timed" then
@@ -356,12 +382,9 @@ function update()
             cactusSpawnTimer = 0
         end
 
-        -- Genera nuovi uccelli
-        birdSpawnTimer = birdSpawnTimer + 1
-        if birdSpawnTimer >= birdSpawnInterval then
-            spawnBird()
-            birdSpawnTimer = 0
-        end
+        -- Aggiorna la posizione dell'uccello e l'animazione
+        updateBird()
+        updateBirdAnimation()
 
         -- Aggiorna la posizione dei cactus e controlla le collisioni
         for i = #cacti, 1, -1 do
@@ -376,34 +399,6 @@ function update()
             if cactus.x < dino.x + dino.width and
                cactus.x + cactus.width > dino.x and
                dino.y + dino.height > cactus.y then
-                gameOver = true
-                if score > highScore then
-                    highScore = score
-                    local file = io.open("ux0:/data/dino_game/highscore.txt", "w")
-                    if file then
-                        file:write(tostring(highScore))
-                        file:close()
-                    end
-                end
-                if gameOverSound and settings.soundEnabled then
-                    sound.play(gameOverSound, false, 1) -- Priorità bassa
-                end
-            end
-        end
-
-        -- Aggiorna la posizione degli uccelli e controlla le collisioni
-        for i = #birds, 1, -1 do
-            local bird = birds[i]
-            bird.x = bird.x + bird.speed
-
-            if bird.x < -bird.width then
-                table.remove(birds, i)
-                score = score + 1
-            end
-
-            if bird.x < dino.x + dino.width and
-               bird.x + bird.width > dino.x and
-               dino.y + dino.height > bird.y then
                 gameOver = true
                 if score > highScore then
                     highScore = score
@@ -442,10 +437,8 @@ function draw()
         image.blit(cactus.image, cactus.x, cactus.y)
     end
 
-    -- Disegna gli uccelli
-    for _, bird in ipairs(birds) do
-        image.blit(bird.image, bird.x, bird.y)
-    end
+    -- Disegna l'uccello
+    image.blit(birdImages[bird.frame], bird.x, bird.y)
 
     -- Disegna il punteggio e l'highscore
     screen.print(10, 10, translate("score") .. ": " .. score, 0.7, color.gray) 
