@@ -1,5 +1,7 @@
  color.loadpalette() -- much more easier to work with rather than hex values
 -- script.lua Written by theHeroGAC and Harommel OddSock
+-- Carica la palette di colori
+color.loadpalette()
 
 -- Funzione per creare la cartella se non esiste
 function createDirectoryIfNotExists(path)
@@ -522,6 +524,19 @@ function handleMenuInput()
         menuSelection = menuSelection - 1
         if menuSelection < 1 then
             menuSelection = 5
+        end
+    end
+
+    -- Selezione con i tasti direzionali (d-pad)
+    if buttons.up then
+        menuSelection = menuSelection - 1
+        if menuSelection < 1 then
+            menuSelection = 5
+        end
+    elseif buttons.down then
+        menuSelection = menuSelection + 1
+        if menuSelection > 5 then
+            menuSelection = 1
         end
     end
 
