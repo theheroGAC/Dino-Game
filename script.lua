@@ -157,6 +157,19 @@ local cactusSpawnTimer = 0   -- Timer per generare nuovi cactus
 local cactusSpawnInterval = 100 -- Intervallo di generazione dei cactus (in frame)
 local maxCacti = 5           -- Numero massimo di cactus
 
+-- Carica le immagini degli uccelli
+local birdImages = {
+    image.load("assets/images/bird1.png"),
+    image.load("assets/images/bird2.png")
+}
+
+-- Variabili per gli uccelli
+local birds = {}             -- Tabella per memorizzare gli uccelli
+local birdSpeed = -6         -- Velocità base degli uccelli
+local birdSpawnTimer = 0     -- Timer per generare nuovi uccelli
+local birdSpawnInterval = 150 -- Intervallo di generazione degli uccelli (in frame)
+local maxBirds = 2           -- Numero massimo di uccelli
+
 local gravity = 0.5          -- Gravità applicata al dinosauro
 local score = 0              -- Punteggio del gioco
 local gameOver = false       -- Stato del gioco (true se il gioco è finito)
@@ -231,6 +244,24 @@ function spawnCactus()
     end
 end
 
+-- Funzione per generare un nuovo uccello
+function spawnBird()
+    local numBirds = math.min(math.floor(score / 30) + 1, maxBirds)
+    for i = 1, numBirds do
+        local spacing = 150  -- Distanza orizzontale tra gli uccelli
+        local birdType = math.random(1, #birdImages) -- Scegli un tipo di uccello casuale
+        local birdY = math.random(150, 250) -- Posizione Y casuale per l'uccello
+        table.insert(birds, {
+            x = 800 + (i * spacing),
+            y = birdY,
+            speed = birdSpeed,
+            width = 30, 
+            height = 30, 
+            image = birdImages[birdType] -- Usa l'immagine casuale
+        })
+    end
+end
+
 -- Funzione per aggiornare lo sfondo scorrevole
 function updateBackground()
     background.x1 = background.x1 + background.speed
@@ -279,6 +310,7 @@ function resetGame()
     dino.speed = 0
     dino.isDucking = false
     cacti = {}
+    birds = {}
     score = 0
     gameOver = false
     if gameMode == "timed" then
@@ -324,6 +356,13 @@ function update()
             cactusSpawnTimer = 0
         end
 
+        -- Genera nuovi uccelli
+        birdSpawnTimer = birdSpawnTimer + 1
+        if birdSpawnTimer >= birdSpawnInterval then
+            spawnBird()
+            birdSpawnTimer = 0
+        end
+
         -- Aggiorna la posizione dei cactus e controlla le collisioni
         for i = #cacti, 1, -1 do
             local cactus = cacti[i]
@@ -337,6 +376,34 @@ function update()
             if cactus.x < dino.x + dino.width and
                cactus.x + cactus.width > dino.x and
                dino.y + dino.height > cactus.y then
+                gameOver = true
+                if score > highScore then
+                    highScore = score
+                    local file = io.open("ux0:/data/dino_game/highscore.txt", "w")
+                    if file then
+                        file:write(tostring(highScore))
+                        file:close()
+                    end
+                end
+                if gameOverSound and settings.soundEnabled then
+                    sound.play(gameOverSound, false, 1) -- Priorità bassa
+                end
+            end
+        end
+
+        -- Aggiorna la posizione degli uccelli e controlla le collisioni
+        for i = #birds, 1, -1 do
+            local bird = birds[i]
+            bird.x = bird.x + bird.speed
+
+            if bird.x < -bird.width then
+                table.remove(birds, i)
+                score = score + 1
+            end
+
+            if bird.x < dino.x + dino.width and
+               bird.x + bird.width > dino.x and
+               dino.y + dino.height > bird.y then
                 gameOver = true
                 if score > highScore then
                     highScore = score
@@ -375,6 +442,11 @@ function draw()
         image.blit(cactus.image, cactus.x, cactus.y)
     end
 
+    -- Disegna gli uccelli
+    for _, bird in ipairs(birds) do
+        image.blit(bird.image, bird.x, bird.y)
+    end
+
     -- Disegna il punteggio e l'highscore
     screen.print(10, 10, translate("score") .. ": " .. score, 0.7, color.gray) 
     screen.print(10, 30, translate("highScore") .. ": " .. highScore, 0.7, color.gray) 
@@ -406,6 +478,21 @@ end
 function handleInput()
     buttons.read()
     touch.read()
+
+    -- Controllo salto con il tasto X
+    if buttons.cross and dino.y == 200 then
+        dino.speed = -15
+        if jumpSound and settings.soundEnabled then
+            sound.play(jumpSound, false, 1) -- Priorità bassa
+        end
+    end
+
+    -- Controllo sdraiato con il tasto quadrato
+    if buttons.square and dino.y == 200 then
+        dino.isDucking = true
+    else
+        dino.isDucking = false
+    end
 
     -- Controllo touch per il salto
     if touch.front.count > 0 then
