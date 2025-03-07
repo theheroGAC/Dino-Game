@@ -88,7 +88,7 @@ local translations = {
         sounds = "Sonidos",
         language = "Idioma",
         infinite = "Infinito",
-        timed = "A Tiempo",
+        timed = "A Tempo",
     }
 }
 
@@ -155,7 +155,7 @@ local frameInterval = 10     -- Intervallo tra i frame (in frame del gioco)
 local cacti = {}             -- Tabella per memorizzare i cactus
 local cactusSpeed = -5       -- Velocità base dei cactus
 local cactusSpawnTimer = 0   -- Timer per generare nuovi cactus
-local cactusSpawnInterval = 100 -- Intervallo di generazione dei cactus (in frame)
+local cactusSpawnInterval = 150 -- Intervallo di generazione dei cactus (in frame)
 local maxCacti = 5           -- Numero massimo di cactus
 
 -- Carica le immagini degli uccelli
@@ -175,6 +175,15 @@ local bird = {
     frameTimer = 0,         -- Timer per l'animazione
     frameInterval = 10      -- Intervallo tra i frame (in frame del gioco)
 }
+
+-- Carica l'immagine della nuvola
+local cloudImage = image.load("assets/images/cloud.png")
+
+-- Variabili per le nuvole
+local clouds = {}             -- Tabella per memorizzare le nuvole
+local cloudSpeed = -2         -- Velocità delle nuvole
+local cloudSpawnTimer = 0     -- Timer per generare nuove nuvole
+local cloudSpawnInterval = 600 -- Intervallo di generazione delle nuvole (10 secondi, 60 FPS * 10)
 
 local gravity = 0.5          -- Gravità applicata al dinosauro
 local score = 0              -- Punteggio del gioco
@@ -238,9 +247,9 @@ local prevSquareState = false
 
 -- Funzione per generare un nuovo cactus
 function spawnCactus()
-    local numCacti = math.min(math.floor(score / 20) + 1, maxCacti)
+    local numCacti = 1 -- Genera sempre solo 1 cactus
     for i = 1, numCacti do
-        local spacing = 100  -- Distanza orizzontale tra i cactus
+        local spacing = 200  -- Aumenta la distanza tra i cactus
         local cactusType = math.random(1, #cactusImages) -- Scegli un tipo di cactus casuale
         table.insert(cacti, {
             x = 800 + (i * spacing),
@@ -251,6 +260,18 @@ function spawnCactus()
             image = cactusImages[cactusType] -- Usa l'immagine casuale
         })
     end
+end
+
+-- Funzione per generare una nuova nuvola
+function spawnCloud()
+    local cloudY = math.random(50, 100) -- Posizione Y casuale per la nuvola
+    table.insert(clouds, {
+        x = 960,                        -- Posizione X iniziale (fuori dallo schermo a destra)
+        y = cloudY,                     -- Posizione Y
+        speed = cloudSpeed,             -- Velocità della nuvola
+        width = 64,                     -- Larghezza della nuvola
+        height = 24                     -- Altezza della nuvola
+    })
 end
 
 -- Funzione per aggiornare l'animazione dell'uccello
@@ -289,6 +310,40 @@ function updateBird()
         if gameOverSound and settings.soundEnabled then
             sound.play(gameOverSound, false, 1) -- Priorità bassa
         end
+    end
+end
+
+-- Funzione per aggiornare le nuvole
+function updateClouds()
+    cloudSpawnTimer = cloudSpawnTimer + 1
+    if cloudSpawnTimer >= cloudSpawnInterval then
+        spawnCloud()
+        cloudSpawnTimer = 0
+    end
+
+    -- Aggiorna la posizione delle nuvole
+    for i = #clouds, 1, -1 do
+        local cloud = clouds[i]
+        cloud.x = cloud.x + cloud.speed
+
+        -- Rimuovi la nuvola se esce dallo schermo
+        if cloud.x < -cloud.width then
+            table.remove(clouds, i)
+        end
+    end
+end
+
+-- Funzione per disegnare le nuvole
+function drawClouds()
+    for _, cloud in ipairs(clouds) do
+        image.blit(cloudImage, cloud.x, cloud.y)
+    end
+end
+
+-- Funzione per aggiornare il punteggio mentre il dinosauro cammina
+function updateScoreWhileWalking()
+    if dino.y == 200 and not dino.isDucking then
+        score = score + 1 -- Aumenta il punteggio ogni frame (60 punti al secondo)
     end
 end
 
@@ -341,6 +396,7 @@ function resetGame()
     dino.isDucking = false
     cacti = {}
     bird.x = 800 -- Resetta la posizione dell'uccello
+    clouds = {}  -- Resetta le nuvole
     score = 0
     gameOver = false
     if gameMode == "timed" then
@@ -390,6 +446,12 @@ function update()
         updateBird()
         updateBirdAnimation()
 
+        -- Aggiorna le nuvole
+        updateClouds()
+
+        -- Aggiorna il punteggio mentre il dinosauro cammina
+        updateScoreWhileWalking()
+
         -- Aggiorna la posizione dei cactus e controlla le collisioni
         for i = #cacti, 1, -1 do
             local cactus = cacti[i]
@@ -427,6 +489,9 @@ function draw()
     screen.clear(color.white)
     image.blit(background.image, background.x1, 262) 
     image.blit(background.image, background.x2, 262) 
+
+    -- Disegna le nuvole
+    drawClouds()
 
     if gameOver then
         -- Mostra il frame di "game over"
