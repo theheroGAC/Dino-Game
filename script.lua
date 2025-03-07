@@ -153,9 +153,9 @@ local frameTimer = 0         -- Timer per l'animazione
 local frameInterval = 10     -- Intervallo tra i frame (in frame del gioco)
 
 local cacti = {}             -- Tabella per memorizzare i cactus
-local cactusSpeed = -5       -- Velocità base dei cactus
+local cactusSpeed = -10      -- Velocità base dei cactus (aumentata)
 local cactusSpawnTimer = 0   -- Timer per generare nuovi cactus
-local cactusSpawnInterval = 150 -- Intervallo di generazione dei cactus (in frame)
+local cactusSpawnInterval = 80 -- Intervallo di generazione dei cactus (in frame)
 local maxCacti = 5           -- Numero massimo di cactus
 
 -- Carica le immagini degli uccelli
@@ -167,8 +167,8 @@ local birdImages = {
 -- Variabili per l'uccello
 local bird = {
     x = 800,                -- Posizione X iniziale dell'uccello
-    y = 150,                -- Posizione Y dell'uccello (altezza maggiore)
-    speed = -6,             -- Velocità base dell'uccello
+    y = 250,                -- Posizione Y iniziale dell'uccello
+    speed = -12,            -- Velocità base dell'uccello (aumentata)
     width = 30,             -- Larghezza dell'uccello
     height = 30,            -- Altezza dell'uccello
     frame = 1,              -- Frame corrente dell'animazione
@@ -181,9 +181,9 @@ local cloudImage = image.load("assets/images/cloud.png")
 
 -- Variabili per le nuvole
 local clouds = {}             -- Tabella per memorizzare le nuvole
-local cloudSpeed = -2         -- Velocità delle nuvole
+local cloudSpeed = -6         -- Velocità delle nuvole (aumentata)
 local cloudSpawnTimer = 0     -- Timer per generare nuove nuvole
-local cloudSpawnInterval = 600 -- Intervallo di generazione delle nuvole (10 secondi, 60 FPS * 10)
+local cloudSpawnInterval = 150 -- Intervallo di generazione delle nuvole (2.5 secondi, 60 FPS * 2.5)
 
 local gravity = 0.5          -- Gravità applicata al dinosauro
 local score = 0              -- Punteggio del gioco
@@ -214,7 +214,7 @@ end
 local background = {
     x1 = 0,                  -- Posizione X della prima immagine di sfondo
     x2 = 960,                -- Posizione X della seconda immagine di sfondo (larghezza dell'immagine)
-    speed = -5,              -- Velocità di scorrimento dello sfondo 
+    speed = -10,             -- Velocità di scorrimento dello sfondo (aumentata)
     image = image.load("assets/images/background.png")
 }
 
@@ -245,6 +245,10 @@ local currentCactusImage = 1 -- Immagine corrente del cactus
 -- Variabile per memorizzare lo stato precedente del tasto quadrato
 local prevSquareState = false
 
+-- Variabile per alternare l'altezza dell'uccello
+local birdHeightIndex = 1
+local birdHeights = {150, 140, 130} -- Altezze per l'uccello
+
 -- Funzione per generare un nuovo cactus
 function spawnCactus()
     local numCacti = 1 -- Genera sempre solo 1 cactus
@@ -262,16 +266,18 @@ function spawnCactus()
     end
 end
 
--- Funzione per generare una nuova nuvola
+-- Funzione per generare nuove nuvole
 function spawnCloud()
-    local cloudY = math.random(50, 100) -- Posizione Y casuale per la nuvola
-    table.insert(clouds, {
-        x = 960,                        -- Posizione X iniziale (fuori dallo schermo a destra)
-        y = cloudY,                     -- Posizione Y
-        speed = cloudSpeed,             -- Velocità della nuvola
-        width = 64,                     -- Larghezza della nuvola
-        height = 24                     -- Altezza della nuvola
-    })
+    for i = 1, 3 do -- Genera 3 nuvole
+        local cloudY = math.random(50, 150) -- Posizione Y casuale per la nuvola
+        table.insert(clouds, {
+            x = 960 + (i * 200), -- Distanzia le nuvole orizzontalmente
+            y = cloudY,                     -- Posizione Y
+            speed = cloudSpeed,             -- Velocità della nuvola
+            width = 64,                     -- Larghezza della nuvola
+            height = 24                     -- Altezza della nuvola
+        })
+    end
 end
 
 -- Funzione per aggiornare l'animazione dell'uccello
@@ -292,6 +298,12 @@ function updateBird()
     if bird.x < -bird.width then
         bird.x = 800 -- Resetta la posizione dell'uccello quando esce dallo schermo
         score = score + 1
+        -- Alterna l'altezza dell'uccello
+        birdHeightIndex = birdHeightIndex + 1
+        if birdHeightIndex > #birdHeights then
+            birdHeightIndex = 1
+        end
+        bird.y = birdHeights[birdHeightIndex]
     end
 
     -- Controlla la collisione con il dinosauro
