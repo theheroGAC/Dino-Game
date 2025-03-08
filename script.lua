@@ -191,7 +191,7 @@ local birdAmplitude = 20 -- Quanto si sposta su e giù
 local birdFrequency = 1 -- Velocità del movimento
 
 -- Variabili per la gravità
-local initialGravity = 0.8 -- Gravità ridotta (valore originale: 0.5)
+local initialGravity = 0.7 -- Gravità ridotta a 0.7
 local gravity = initialGravity
 
 -- Carica l'immagine della nuvola
@@ -418,7 +418,7 @@ end
 
 -- Funzione per aggiornare l'animazione del dinosauro
 function updateDinoAnimation()
-    if dino.y == 200 then -- Se il dinosauro è a terra
+    if dino.y == 200 or dino.y == 230 then -- Se il dinosauro è a terra o abbassato
         if dino.isDucking then
             frameTimer = frameTimer + 1
             if frameTimer >= frameInterval then
@@ -429,6 +429,7 @@ function updateDinoAnimation()
                 frameTimer = 0
             end
             dino.image = dinoDuckFrames[currentFrame] -- Usa il frame corrente dell'abbassamento
+            dino.y = 230 -- Sposta il dinosauro verso il basso di 30 pixel
         else
             frameTimer = frameTimer + 1
             if frameTimer >= frameInterval then
@@ -439,6 +440,7 @@ function updateDinoAnimation()
                 frameTimer = 0
             end
             dino.image = dinoFrames[currentFrame] -- Usa il frame corrente della corsa
+            dino.y = 200 -- Ripristina la posizione Y normale
         end
     else
         dino.image = dinoJumpFrame -- Usa il frame del salto
@@ -656,7 +658,7 @@ function handleInput()
     touch.read()
 
     -- Controllo salto con il tasto X
-    if buttons.cross and dino.y == 200 then
+    if buttons.cross and (dino.y == 200 or dino.y == 230) then
         dino.speed = -15
         if jumpSound and settings.soundEnabled then
             sound.play(jumpSound, false, 1) -- Priorità bassa
@@ -674,7 +676,7 @@ function handleInput()
     -- Controllo touch per il salto
     if touch.front.count > 0 then
         for i = 1, touch.front.count do
-            if touch.front[i].pressed and touch.front[i].y > 200 and dino.y == 200 then
+            if touch.front[i].pressed and touch.front[i].y > 200 and (dino.y == 200 or dino.y == 230) then
                 dino.speed = -15
                 if jumpSound and settings.soundEnabled then
                     sound.play(jumpSound, false, 1) -- Priorità bassa
