@@ -1,4 +1,3 @@
--- script.lua Written by theHeroGAC and Harommel OddSock
 -- Carica la palette di colori
 color.loadpalette()
 
@@ -88,13 +87,13 @@ local translations = {
         sounds = "Sonidos",
         language = "Idioma",
         infinite = "Infinito",
-        timed = "A Tempo",
+        timed = "A Tiempo",
     }
 }
 
 -- Lingua corrente (predefinita: english)
 local currentLanguage = "en"
-local currentLanguageStr = {["en"]="English", ["it"]="Italiano", ["es"]="Espagnol", ["fr"]="Français"}
+local currentLanguageStr = {["en"]="English", ["it"]="Italiano", ["es"]="Español", ["fr"]="Français"}
 
 -- Funzione di traduzione
 function translate(key)
@@ -123,6 +122,11 @@ end
 
 -- Carica la configurazione all'avvio
 loadConfig()
+
+-- Variabili globali per la velocità base
+local initialCactusSpeed = -10 -- Velocità base dei cactus
+local initialBirdSpeed = -12   -- Velocità base dell'uccello
+local initialBackgroundSpeed = -10 -- Velocità base dello sfondo
 
 -- Variabili del gioco
 local dino = {
@@ -153,7 +157,7 @@ local frameTimer = 0         -- Timer per l'animazione
 local frameInterval = 10     -- Intervallo tra i frame (in frame del gioco)
 
 local cacti = {}             -- Tabella per memorizzare i cactus
-local cactusSpeed = -10      -- Velocità base dei cactus (aumentata)
+local cactusSpeed = initialCactusSpeed -- Velocità dei cactus (inizializzata con il valore base)
 local cactusSpawnTimer = 0   -- Timer per generare nuovi cactus
 local cactusSpawnInterval = 80 -- Intervallo di generazione dei cactus (in frame)
 local maxCacti = 5           -- Numero massimo di cactus
@@ -168,7 +172,7 @@ local birdImages = {
 local bird = {
     x = 800,                -- Posizione X iniziale dell'uccello
     y = 250,                -- Posizione Y iniziale dell'uccello
-    speed = -12,            -- Velocità base dell'uccello (aumentata)
+    speed = initialBirdSpeed, -- Velocità base dell'uccello (inizializzata con il valore base)
     width = 30,             -- Larghezza dell'uccello
     height = 30,            -- Altezza dell'uccello
     frame = 1,              -- Frame corrente dell'animazione
@@ -187,7 +191,7 @@ local birdAmplitude = 20 -- Quanto si sposta su e giù
 local birdFrequency = 1 -- Velocità del movimento
 
 -- Variabili per la gravità
-local initialGravity = 0.5
+local initialGravity = 0.8 -- Gravità ridotta (valore originale: 0.5)
 local gravity = initialGravity
 
 -- Carica l'immagine della nuvola
@@ -195,7 +199,7 @@ local cloudImage = image.load("assets/images/cloud.png")
 
 -- Variabili per le nuvole
 local clouds = {}             -- Tabella per memorizzare le nuvole
-local cloudSpeed = -6         -- Velocità delle nuvole (aumentata)
+local cloudSpeed = initialBackgroundSpeed -- Velocità delle nuvole (inizializzata con il valore base)
 local cloudSpawnTimer = 0     -- Timer per generare nuove nuvole
 local cloudSpawnInterval = 150 -- Intervallo di generazione delle nuvole (2.5 secondi, 60 FPS * 2.5)
 
@@ -227,7 +231,7 @@ end
 local background = {
     x1 = 0,                  -- Posizione X della prima immagine di sfondo
     x2 = 960,                -- Posizione X della seconda immagine di sfondo (larghezza dell'immagine)
-    speed = -10,             -- Velocità di scorrimento dello sfondo (aumentata)
+    speed = initialBackgroundSpeed, -- Velocità di scorrimento dello sfondo (inizializzata con il valore base)
     image = image.load("assets/images/background.png")
 }
 
@@ -270,6 +274,9 @@ local currentCactusImage = 1 -- Immagine corrente del cactus
 -- Variabile per memorizzare lo stato precedente del tasto quadrato
 local prevSquareState = false
 
+-- Carica l'immagine di game over
+local gameOverImage = image.load("assets/images/gameover.png")
+
 -- Funzione per generare un nuovo cactus
 function spawnCactus()
     local numCacti = 1 -- Genera sempre solo 1 cactus
@@ -279,7 +286,7 @@ function spawnCactus()
         table.insert(cacti, {
             x = 800 + (i * spacing),
             y = 200,
-            speed = cactusSpeed,
+            speed = cactusSpeed, -- Usa la velocità aggiornata
             width = 30, 
             height = 30, 
             image = cactusImages[cactusType] -- Usa l'immagine casuale
@@ -391,11 +398,9 @@ function drawClouds()
     end
 end
 
--- Funzione per aggiornare il punteggio mentre il dinosauro cammina
-function updateScoreWhileWalking()
-    if dino.y == 200 and not dino.isDucking then
-        score = score + 1 -- Aumenta il punteggio ogni frame (60 punti al secondo)
-    end
+-- Funzione per aggiornare il punteggio continuamente
+function updateScoreContinuously()
+    score = score + 1 -- Aumenta il punteggio ogni frame (60 punti al secondo)
 end
 
 -- Funzione per aggiornare lo sfondo scorrevole
@@ -462,6 +467,10 @@ function resetGame()
     nextBirdSpawnScore = 0
     -- Resetta la gravità
     gravity = initialGravity
+    -- Resetta le velocità
+    cactusSpeed = initialCactusSpeed
+    bird.speed = initialBirdSpeed
+    background.speed = initialBackgroundSpeed
 end
 
 -- Funzione per aggiornare il ciclo giorno/notte
@@ -494,8 +503,16 @@ end
 -- Funzione per aumentare la gravità gradualmente
 function increaseGravity()
     if score % 800 == 0 and score > 0 then
-        gravity = gravity + 0.1 -- Aumenta la gravità di 0.1 ogni 800 punti
+        gravity = gravity + 0.05 -- Aumenta la gravità di 0.05 ogni 800 punti
     end
+end
+
+-- Funzione per aggiornare la velocità in base al punteggio
+function updateSpeedBasedOnScore()
+    local speedIncrease = math.floor(score / 100) * 0.5 -- Aumenta la velocità ogni 100 punti
+    cactusSpeed = initialCactusSpeed - speedIncrease
+    bird.speed = initialBirdSpeed - speedIncrease
+    background.speed = initialBackgroundSpeed - speedIncrease
 end
 
 -- Funzione di caricamento
@@ -544,14 +561,17 @@ function update()
         -- Aggiorna le nuvole
         updateClouds()
 
-        -- Aggiorna il punteggio mentre il dinosauro cammina
-        updateScoreWhileWalking()
+        -- Aggiorna il punteggio continuamente
+        updateScoreContinuously()
 
         -- Aumenta la gravità gradualmente
         increaseGravity()
 
         -- Aggiorna il ciclo giorno/notte
         updateDayNightCycle()
+
+        -- Aggiorna la velocità in base al punteggio
+        updateSpeedBasedOnScore()
 
         -- Aggiorna la posizione dei cactus e controlla le collisioni
         for i = #cacti, 1, -1 do
@@ -560,7 +580,6 @@ function update()
 
             if cactus.x < -cactus.width then
                 table.remove(cacti, i)
-                score = score + 1
             end
 
             if cactus.x < dino.x + dino.width and
@@ -593,8 +612,9 @@ function draw()
     drawClouds()
 
     if gameOver then
-        -- Mostra il frame di "game over"
-        image.blit(dinoGameOverFrame, dino.x, dino.y)
+        -- Mostra l'immagine di game over
+        image.blit(gameOverImage, 200, 100)
+        screen.print(280, 250, translate("restart"), 0.7, color.gray) 
     else
         -- Mostra il frame corrente dell'animazione
         image.blit(dino.image, dino.x, dino.y)
@@ -617,13 +637,6 @@ function draw()
     -- Disegna il timer per la modalità a tempo
     if gameMode == "timed" then
         screen.print(10, 50, translate("time")..": " ..math.floor(timeLeft).." seconds", 0.7, color.gray) 
-    end
-
-    if gameOver then
-        screen.print(300, 200, translate("gameOver"), 0.7, color.gray) 
-        screen.print(280, 250, translate("restart"), 0.7, color.gray) 
-    elseif isPaused then
-        drawPauseMenu()
     end
 
     screen.flip()
