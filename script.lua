@@ -277,6 +277,10 @@ local prevSquareState = false
 -- Carica l'immagine di game over
 local gameOverImage = image.load("assets/images/gameover.png")
 
+-- Dimensioni predefinite dell'immagine gameover.png
+local gameOverWidth = 400  -- Larghezza dell'immagine gameover.png
+local gameOverHeight = 100 -- Altezza dell'immagine gameover.png
+
 -- Funzione per generare un nuovo cactus
 function spawnCactus()
     local numCacti = 1 -- Genera sempre solo 1 cactus
@@ -614,26 +618,26 @@ function draw()
     drawClouds()
 
     if gameOver then
-        -- Testi da visualizzare
-        local gameOverText = "Game Over"
+        -- Carica l'immagine di game over
+        local gameOverImage = image.load("assets/images/gameover.png")
+
+        -- Calcola le coordinate per centrare l'immagine
+        local gameOverX = (960 - gameOverWidth) / 2
+        local gameOverY = (544 - gameOverHeight - 40) / 2 -- Lascia spazio per il testo sotto
+
+        -- Disegna l'immagine di game over centrata
+        image.blit(gameOverImage, gameOverX, gameOverY)
+
+        -- Testo "Premi X per continuare"
         local restartText = translate("restart") -- "Premi X per continuare" (tradotto)
 
-        -- Dimensioni approssimative dei testi
-        local gameOverWidth = 200 -- Larghezza approssimativa di "Game Over"
-        local gameOverHeight = 30 -- Altezza approssimativa di "Game Over"
+        -- Dimensioni approssimative del testo
         local restartWidth = 250 -- Larghezza approssimativa di "Premi X per continuare"
         local restartHeight = 20 -- Altezza approssimativa di "Premi X per continuare"
 
-        -- Calcola le coordinate per centrare "Game Over"
-        local gameOverX = (960 - gameOverWidth) / 2
-        local gameOverY = (544 - gameOverHeight - restartHeight - 20) / 2 -- Centra verticalmente con spazio tra le scritte
-
-        -- Calcola le coordinate per centrare "Premi X per continuare"
+        -- Calcola le coordinate per centrare il testo sotto l'immagine
         local restartX = (960 - restartWidth) / 2
-        local restartY = gameOverY + gameOverHeight + 20 -- Posiziona sotto "Game Over"
-
-        -- Mostra "Game Over"
-        screen.print(gameOverX, gameOverY, gameOverText, 1.0, color.white) -- Testo bianco, dimensione 1.0
+        local restartY = gameOverY + gameOverHeight + 20 -- Posiziona sotto l'immagine
 
         -- Mostra "Premi X per continuare"
         screen.print(restartX, restartY, restartText, 0.7, color.gray) -- Testo grigio, dimensione 0.7
