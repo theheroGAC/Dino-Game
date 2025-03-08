@@ -22,7 +22,7 @@ local translations = {
         highScore = "High Score",
         time = "Tempo",
         gameOver = "Game Over",
-        restart = "Premi X per Ricominciare",
+        restart = "Premi X per continuare",
         pause = "Pausa",
         resume = "Riprendi",
         backToMenu = "Torna al Menu",
@@ -614,9 +614,29 @@ function draw()
     drawClouds()
 
     if gameOver then
-        -- Mostra l'immagine di game over
-        image.blit(gameOverImage, 200, 100)
-        screen.print(280, 250, translate("restart"), 0.7, color.gray) 
+        -- Testi da visualizzare
+        local gameOverText = "Game Over"
+        local restartText = translate("restart") -- "Premi X per continuare" (tradotto)
+
+        -- Dimensioni approssimative dei testi
+        local gameOverWidth = 200 -- Larghezza approssimativa di "Game Over"
+        local gameOverHeight = 30 -- Altezza approssimativa di "Game Over"
+        local restartWidth = 250 -- Larghezza approssimativa di "Premi X per continuare"
+        local restartHeight = 20 -- Altezza approssimativa di "Premi X per continuare"
+
+        -- Calcola le coordinate per centrare "Game Over"
+        local gameOverX = (960 - gameOverWidth) / 2
+        local gameOverY = (544 - gameOverHeight - restartHeight - 20) / 2 -- Centra verticalmente con spazio tra le scritte
+
+        -- Calcola le coordinate per centrare "Premi X per continuare"
+        local restartX = (960 - restartWidth) / 2
+        local restartY = gameOverY + gameOverHeight + 20 -- Posiziona sotto "Game Over"
+
+        -- Mostra "Game Over"
+        screen.print(gameOverX, gameOverY, gameOverText, 1.0, color.white) -- Testo bianco, dimensione 1.0
+
+        -- Mostra "Premi X per continuare"
+        screen.print(restartX, restartY, restartText, 0.7, color.gray) -- Testo grigio, dimensione 0.7
     else
         -- Mostra il frame corrente dell'animazione
         image.blit(dino.image, dino.x, dino.y)
