@@ -15,7 +15,7 @@
 				<str color="#ffffff" size="20"> Documentation </str>
 			</text>
 
-			<target>http://ONElua.x10.mx</target>
+			<target>https://github.com/theheroGAC/Dino-Game</target>
 
 		</liveitem>
 	</frame>
@@ -43,7 +43,7 @@
 					®2025 TheheroGAC
 				</str>
 			</text>
-			<exclude-lang>es</exclude-lang>
+			<exclude-lang>en</exclude-lang>
 		</liveitem>
 	</frame>
 </livearea>
