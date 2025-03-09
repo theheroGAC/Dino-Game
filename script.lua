@@ -665,6 +665,11 @@ function draw()
         screen.print(10, 50, translate("time")..": " ..math.floor(timeLeft).." seconds", 0.7, color.gray) 
     end
 
+    -- Disegna il menu di pausa se il gioco è in pausa
+    if isPaused then
+        drawPauseMenu()
+    end
+
     screen.flip()
 end
 
@@ -730,12 +735,15 @@ function handleInput()
     if isPaused then
         if buttons.cross then
             -- Riavvia il gioco
-            resetGame()
             isPaused = false
+            if settings.musicEnabled then
+                sound.play(backgroundMusic, true) -- Riprendi la musica
+            end
         elseif buttons.circle then
             -- Torna al menu principale
             inMenu = true
             isPaused = false
+            resetGame() -- Resetta il gioco
         end
     end
 end
